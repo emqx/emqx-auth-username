@@ -27,7 +27,7 @@
 -define(APP, emq_auth_username).
 
 start(_Type, _Args) ->
-    {ok, Userlist} = application:get_env(?APP, userlist),
+    {ok, Userlist} = application:get_env(?APP, userlist, []),
     emqttd_access_control:register_mod(auth, ?APP, Userlist),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
