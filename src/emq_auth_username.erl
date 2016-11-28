@@ -117,10 +117,10 @@ all_users() -> mnesia:dirty_all_keys(?AUTH_USERNAME_TAB).
 %%--------------------------------------------------------------------
 
 init(Userlist) ->
-    mnesia:create_table(?AUTH_USERNAME_TAB, [
+    ok = emqttd_mnesia:create_table(?AUTH_USERNAME_TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?AUTH_USERNAME_TAB)}]),
-    emqttd_mnesia:copy_table(?AUTH_USERNAME_TAB, disc_copies),
+    ok = emqttd_mnesia:copy_table(?AUTH_USERNAME_TAB, disc_copies),
     lists:foreach(fun({Username, Password}) ->
                       add_default_user(Username, Password)
                   end, Userlist),
