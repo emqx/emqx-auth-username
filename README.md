@@ -16,7 +16,8 @@ Configuration
 etc/emq_auth_username.conf:
 
 ```
-auth.username.$name=$password
+##auth.user.$N.username = admin
+##auth.user.$N.password = public
 ```
 
 Load the Plugin
