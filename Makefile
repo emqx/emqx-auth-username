@@ -1,6 +1,6 @@
 PROJECT = emq_auth_username
 PROJECT_DESCRIPTION = Authentication with Username/Password
-PROJECT_VERSION = 2.1.1
+PROJECT_VERSION = 2.1.2
 
 BUILD_DEPS = emqttd cuttlefish
 dep_emqttd = git https://github.com/emqtt/emqttd emq20
