@@ -134,7 +134,7 @@ check(_User, undefined, _Opts) ->
 check(#mqtt_client{username = Username}, Password, _Opts) ->
     case mnesia:dirty_read(?AUTH_USERNAME_TAB, Username) of
         [] ->
-            {error, username_not_found};
+            ignore;
         [#?AUTH_USERNAME_TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= md5_hash(Salt, Password) of
                 true -> ok;
