@@ -32,7 +32,7 @@ emq_auth_username_api(_Config) ->
     emq_auth_username:lookup_user(<<"emq_auth_username">>),
     ok = emqttd_access_control:auth(User1, <<"password">>),
     ok = emq_auth_username:remove_user(<<"emq_auth_username">>),
-    {error, username_not_found} = emqttd_access_control:auth(User1, <<"password">>).
+    ok = emqttd_access_control:auth(User1, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emq_auth_username),
