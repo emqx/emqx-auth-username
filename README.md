@@ -1,5 +1,5 @@
-emq_auth_username
-=================
+emqx_auth_username
+==================
 
 Authentication with Username and Password
 
@@ -13,7 +13,7 @@ make && make tests
 Configuration
 -------------
 
-etc/emq_auth_username.conf:
+etc/emqx_auth_username.conf:
 
 ```
 ##auth.user.$N.username = admin
@@ -24,7 +24,7 @@ Load the Plugin
 ---------------
 
 ```
-./bin/emqttd_ctl plugins load emq_auth_username
+./bin/emqx_ctl plugins load emqx_auth_username
 ```
 
 License
@@ -35,5 +35,5 @@ Apache License Version 2.0
 Author
 ------
 
-feng at emqtt.io
+EMQ X-Men Team.
 

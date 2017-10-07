@@ -1,10 +1,9 @@
-PROJECT = emq_auth_username
-PROJECT_DESCRIPTION = Authentication with Username/Password
+PROJECT = emqx_auth_username
+PROJECT_DESCRIPTION = EMQ X Authentication with Username/Password
+PROJECT_VERSION = 2.4
 
-PROJECT_VERSION = 2.3
-
-BUILD_DEPS = emqttd cuttlefish
-dep_emqttd = git https://github.com/emqtt/emqttd develop
+BUILD_DEPS = emqx cuttlefish
+dep_emqx = git https://github.com/emqtt/emqttd X
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 NO_AUTOPATCH = cuttlefish
@@ -21,4 +20,4 @@ COVER = true
 include erlang.mk
 
 app.config::
-	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emq_auth_username.conf -i priv/emq_auth_username.schema -d data
+	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emqx_auth_username.conf -i priv/emqx_auth_username.schema -d data

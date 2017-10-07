@@ -14,22 +14,23 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_username).
+-module(emqx_auth_username).
 
--include_lib("emqttd/include/emqttd.hrl").
+-behaviour(emqx_auth_mod).
 
--include_lib("emqttd/include/emqttd_cli.hrl").
+-include_lib("emqx/include/emqx.hrl").
+
+-include_lib("emqx/include/emqx_macros.hrl").
 
 %% CLI callbacks
 -export([cli/1]).
 
--behaviour(emqttd_auth_mod).
 
 -export([is_enabled/0]).
 
 -export([add_user/2, remove_user/1, lookup_user/1, all_users/0]).
 
-%% emqttd_auth callbacks
+%% emqx_auth callbacks
 -export([init/1, check/3, description/0]).
 
 -define(AUTH_USERNAME_TAB, mqtt_auth_username).
@@ -68,7 +69,7 @@ if_enabled(Fun) ->
     end.
 
 hint() ->
-    ?PRINT_MSG("Please './bin/emqttd_ctl plugins load emq_auth_username' first.~n").
+    ?PRINT_MSG("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
 
 %%--------------------------------------------------------------------
 %% API
@@ -113,7 +114,7 @@ ret({aborted, Error}) -> {error, Error}.
 all_users() -> mnesia:dirty_all_keys(?AUTH_USERNAME_TAB).
 
 %%--------------------------------------------------------------------
-%% emqttd_auth_mod callbacks
+%% emqx_auth_mod callbacks
 %%--------------------------------------------------------------------
 
 init(Userlist) ->
@@ -124,7 +125,7 @@ init(Userlist) ->
     lists:foreach(fun({Username, Password}) ->
                       add_default_user(Username, Password)
                   end, Userlist),
-    emqttd_ctl:register_cmd(users, {?MODULE, cli}, []),
+    emqx_ctl:register_cmd(users, {?MODULE, cli}, []),
     {ok, undefined}.
 
 check(#mqtt_client{username = undefined}, _Password, _Opts) ->
@@ -156,5 +157,5 @@ md5_hash(SaltBin, Password) ->
     erlang:md5(<<SaltBin/binary, Password/binary>>).
 
 salt() ->
-    emqttd_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
+    emqx_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
 
