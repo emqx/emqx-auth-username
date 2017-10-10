@@ -20,11 +20,12 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
--include_lib("emqx/include/emqx_macros.hrl").
+-include_lib("emqx/include/emqx_cli.hrl").
+
+-include_lib("emqx/include/emqx_internal.hrl").
 
 %% CLI callbacks
 -export([cli/1]).
-
 
 -export([is_enabled/0]).
 
