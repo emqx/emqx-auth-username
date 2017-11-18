@@ -1,4 +1,4 @@
-emq_auth_username
+emq-auth-username
 =================
 
 Authentication with Username and Password
@@ -35,5 +35,5 @@ Apache License Version 2.0
 Author
 ------
 
-feng at emqtt.io
+EMQ X Team.
 
