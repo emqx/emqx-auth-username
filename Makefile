@@ -1,6 +1,6 @@
 PROJECT = emqx_auth_username
 PROJECT_DESCRIPTION = EMQ X Authentication with Username/Password
-PROJECT_VERSION = 2.3.0
+PROJECT_VERSION = 2.3.2
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git git@github.com:emqx/emqx-enterprise
