@@ -124,7 +124,6 @@ init(Userlist) ->
     lists:foreach(fun({Username, Password}) ->
                       add_default_user(Username, Password)
                   end, Userlist),
-    emqttd_ctl:register_cmd(users, {?MODULE, cli}, []),
     {ok, undefined}.
 
 check(#mqtt_client{username = undefined}, _Password, _Opts) ->
@@ -157,4 +156,3 @@ md5_hash(SaltBin, Password) ->
 
 salt() ->
     emqttd_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
-
