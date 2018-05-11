@@ -26,12 +26,16 @@
 
 -define(APP, emq_auth_username).
 
+-define(MOD, emq_auth_username).
+
 start(_Type, _Args) ->
     Userlist = application:get_env(?APP, userlist, []),
+    emqttd_ctl:register_cmd(users, {?MOD, cli}, []),
     emqttd_access_control:register_mod(auth, ?APP, Userlist),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
+    emqttd_ctl:unregister_cmd(users),
     emqttd_access_control:unregister_mod(auth, ?APP).
 
 %%--------------------------------------------------------------------
@@ -40,4 +44,3 @@ stop(_State) ->
 
 init([]) ->
     {ok, { {one_for_all, 1, 10}, []} }.
-
