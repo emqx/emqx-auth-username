@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2017 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_auth_username_SUITE).
 
@@ -27,8 +25,8 @@
 all() ->
     [{group, emqx_auth_username}].
 
-groups() -> 
-    [{emqx_auth_username, [sequence], 
+groups() ->
+    [{emqx_auth_username, [sequence],
       [emqx_auth_username_api, change_config, cli]}].
 
 init_per_suite(Config) ->
@@ -43,7 +41,7 @@ end_per_suite(_Config) ->
 emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:add_user(<<"emqx_auth_username">>, <<"password">>),
     User1 = #mqtt_client{username= <<"emqx_auth_username">>},
-    [{mqtt_auth_username, <<"emqx_auth_username">>, _P}] = 
+    [{mqtt_auth_username, <<"emqx_auth_username">>, _P}] =
     emqx_auth_username:lookup_user(<<"emqx_auth_username">>),
     ok = emqx_access_control:auth(User1, <<"password">>),
     ok = emqx_auth_username:remove_user(<<"emqx_auth_username">>),
@@ -60,7 +58,7 @@ change_config(_Config) ->
 
 cli(_Config) ->
     ok = emqx_auth_username:cli(["add", "username", "password"]),
-    [{mqtt_auth_username, <<"username">>, _M}] = 
+    [{mqtt_auth_username, <<"username">>, _M}] =
     emqx_auth_username:lookup_user(<<"username">>),
     ok = emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),

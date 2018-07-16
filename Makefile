@@ -4,7 +4,7 @@ PROJECT_VERSION = 3.0
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git https://github.com/emqtt/emqttd emqx30
-dep_cuttlefish = git https://github.com/emqtt/cuttlefish
+dep_cuttlefish = git https://github.com/emqx/cuttlefish
 
 NO_AUTOPATCH = cuttlefish
 
