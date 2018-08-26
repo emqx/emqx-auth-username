@@ -20,7 +20,8 @@
 
 -include_lib("common_test/include/ct.hrl").
 
--record(mqtt_auth_username, {username, password}).
+-define(TAB, emqx_auth_username).
+-record(?TAB, {username, password}).
 
 all() ->
     [{group, emqx_auth_username}].
@@ -40,26 +41,27 @@ end_per_suite(_Config) ->
 
 emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:add_user(<<"emqx_auth_username">>, <<"password">>),
-    User1 = #mqtt_client{username= <<"emqx_auth_username">>},
-    [{mqtt_auth_username, <<"emqx_auth_username">>, _P}] =
-    emqx_auth_username:lookup_user(<<"emqx_auth_username">>),
-    ok = emqx_access_control:auth(User1, <<"password">>),
-    ok = emqx_auth_username:remove_user(<<"emqx_auth_username">>),
-    ok = emqx_access_control:auth(User1, <<"password">>).
+    User1 = #{username := <<"test_username">>},
+    [{?TAB, <<"test_username">>, _P}] =
+        emqx_auth_username:lookup_user(<<"test_username">>),
+    ok = emqx_access_control:authenticate(User1, <<"password">>),
+    ok = emqx_auth_username:remove_user(<<"test_username">>),
+    ok = emqx_access_control:authenticate(User1, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emqx_auth_username),
-    application:set_env(emqx_auth_username, userlist, [{"id", "password"}, {"dev:devid", "passwd2"}]),
+    application:set_env(emqx_auth_username, userlist,
+                        [{"id", "password"}, {"dev:devid", "passwd2"}]),
     application:start(emqx_auth_username),
-    User1 = #mqtt_client{username= <<"id">>},
-    User2 = #mqtt_client{username= <<"dev:devid">>},
-    ok = emqx_access_control:auth(User1, <<"password">>),
-    ok = emqx_access_control:auth(User2, <<"passwd2">>).
+    User1 = #{username := <<"id">>},
+    User2 = #{username := <<"dev:devid">>},
+    ok = emqx_access_control:authenticate(User1, <<"password">>),
+    ok = emqx_access_control:authenticate(User2, <<"passwd2">>).
 
 cli(_Config) ->
     ok = emqx_auth_username:cli(["add", "username", "password"]),
-    [{mqtt_auth_username, <<"username">>, _M}] =
-    emqx_auth_username:lookup_user(<<"username">>),
+    [{?TAB, <<"username">>, _M}] =
+        emqx_auth_username:lookup_user(<<"username">>),
     ok = emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),
     emqx_auth_username:cli(["list"]),

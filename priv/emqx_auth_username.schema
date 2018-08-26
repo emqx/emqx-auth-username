@@ -1,5 +1,6 @@
 %%-*- mode: erlang -*-
 %% emqx_auth_username config mapping
+
 {mapping, "auth.user.$id.username", "emqx_auth_username.userlist", [
   {datatype, string}
 ]}.

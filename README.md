@@ -1,7 +1,7 @@
 emqx_auth_username
 ==================
 
-Authentication with Username and Password
+EMQ X Authentication with Username and Password
 
 Build
 -----

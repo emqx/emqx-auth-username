@@ -25,23 +25,23 @@
 %% emqx_auth callbacks
 -export([init/1, check/3, description/0]).
 
--define(AUTH_USERNAME_TAB, ?MODULE).
+-define(TAB, ?MODULE).
+-record(?TAB, {username, password}).
 
--record(?AUTH_USERNAME_TAB, {username, password}).
-
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 %% CLI
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 
 cli(["list"]) ->
     if_enabled(fun() ->
-        Usernames = mnesia:dirty_all_keys(?AUTH_USERNAME_TAB),
+        Usernames = mnesia:dirty_all_keys(?TAB),
         [emqx_cli:print("~s~n", [Username]) || Username <- Usernames]
     end);
 
 cli(["add", Username, Password]) ->
     if_enabled(fun() ->
-        emqx_cli:print("~p~n", [add_user(iolist_to_binary(Username), iolist_to_binary(Password))])
+        Ok = add_user(iolist_to_binary(Username), iolist_to_binary(Password)),
+        emqx_cli:print("~p~n", [Ok])
     end);
 
 cli(["del", Username]) ->
@@ -60,21 +60,21 @@ if_enabled(Fun) ->
 hint() ->
     emqx_cli:print("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
 
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 %% API
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 
 is_enabled() ->
-    lists:member(?AUTH_USERNAME_TAB, mnesia:system_info(tables)).
+    lists:member(?TAB, mnesia:system_info(tables)).
 
 %% @doc Add User
 -spec(add_user(binary(), binary()) -> ok | {error, any()}).
 add_user(Username, Password) ->
-    User = #?AUTH_USERNAME_TAB{username = Username, password = hash(Password)},
+    User = #?TAB{username = Username, password = hash(Password)},
     ret(mnesia:transaction(fun insert_user/1, [User])).
 
-insert_user(User = #?AUTH_USERNAME_TAB{username = Username}) ->
-    case mnesia:read(?AUTH_USERNAME_TAB, Username) of
+insert_user(User = #?TAB{username = Username}) ->
+    case mnesia:read(?TAB, Username) of
         []    -> mnesia:write(User);
         [_|_] -> mnesia:abort(existed)
     end.
@@ -88,41 +88,40 @@ add_default_user({Username, Password}) ->
 %% @doc Lookup user by username
 -spec(lookup_user(binary()) -> list()).
 lookup_user(Username) ->
-    mnesia:dirty_read(?AUTH_USERNAME_TAB, Username).
+    mnesia:dirty_read(?TAB, Username).
 
 %% @doc Remove user
 -spec(remove_user(binary()) -> ok | {error, any()}).
 remove_user(Username) ->
-    ret(mnesia:transaction(fun mnesia:delete/1, [{?AUTH_USERNAME_TAB, Username}])).
+    ret(mnesia:transaction(fun mnesia:delete/1, [{?TAB, Username}])).
 
 ret({atomic, ok})     -> ok;
 ret({aborted, Error}) -> {error, Error}.
 
 %% @doc All usernames
 -spec(all_users() -> list()).
-all_users() -> mnesia:dirty_all_keys(?AUTH_USERNAME_TAB).
+all_users() -> mnesia:dirty_all_keys(?TAB).
 
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 %% emqx_auth_mod callbacks
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 
 init(Userlist) ->
-    ok = ekka_mnesia:create_table(?AUTH_USERNAME_TAB, [
+    ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
-            {attributes, record_info(fields, ?AUTH_USERNAME_TAB)}]),
-    ok = ekka_mnesia:copy_table(?AUTH_USERNAME_TAB, disc_copies),
+            {attributes, record_info(fields, ?TAB)}]),
+    ok = ekka_mnesia:copy_table(?TAB, disc_copies),
     ok = lists:foreach(fun add_default_user/1, Userlist),
     {ok, undefined}.
 
-check(#mqtt_client{username = undefined}, _Password, _Opts) ->
+check(#{username := undefined}, _Password, _Opts) ->
     {error, username_undefined};
-check(_User, undefined, _Opts) ->
+check(_Credentials, undefined, _Opts) ->
     {error, password_undefined};
-check(#mqtt_client{username = Username}, Password, _Opts) ->
-    case mnesia:dirty_read(?AUTH_USERNAME_TAB, Username) of
-        [] ->
-            ignore;
-        [#?AUTH_USERNAME_TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
+check(#{username := Username}, Password, _Opts) ->
+    case mnesia:dirty_read(?TAB, Username) of
+        [] -> ignore;
+        [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= md5_hash(Salt, Password) of
                 true -> ok;
                 false -> {error, password_error}
@@ -130,11 +129,11 @@ check(#mqtt_client{username = Username}, Password, _Opts) ->
     end.
 
 description() ->
-    "Username password authentication module".
+    "Username password Authentication Module".
 
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 %% Internal functions
-%%--------------------------------------------------------------------
+%%-----------------------------------------------------------------------------
 
 hash(Password) ->
     SaltBin = salt(), <<SaltBin/binary, (md5_hash(SaltBin, Password))/binary>>.
