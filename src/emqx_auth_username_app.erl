@@ -23,13 +23,13 @@
 -define(APP, emqx_auth_username).
 
 start(_Type, _Args) ->
-    emqx_ctl:register_cmd(users, {?APP, cli}, []),
+    emqx_ctl:register_command(users, {?APP, cli}, []),
     Userlist = application:get_env(?APP, userlist, []),
     emqx_access_control:register_mod(auth, ?APP, Userlist),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqx_ctl:unregister_cmd(users),
+    emqx_ctl:unregister_command(users),
     emqx_access_control:unregister_mod(auth, ?APP).
 
 %%--------------------------------------------------------------------
