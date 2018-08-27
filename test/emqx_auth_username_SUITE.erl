@@ -40,13 +40,13 @@ end_per_suite(_Config) ->
     application:stop(emqx).
 
 emqx_auth_username_api(_Config) ->
-    ok = emqx_auth_username:add_user(<<"emqx_auth_username">>, <<"password">>),
+    ok = emqx_auth_username:add_user(<<"test_username">>, <<"password">>),
     User1 = #{username => <<"test_username">>},
-    [{?TAB, <<"test_username">>, _P}] =
+    [{?TAB, <<"test_username">>, _HashedPass}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
     ok = emqx_access_control:authenticate(User1, <<"password">>),
     ok = emqx_auth_username:remove_user(<<"test_username">>),
-    ok = emqx_access_control:authenticate(User1, <<"password">>).
+    {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emqx_auth_username),
@@ -56,7 +56,11 @@ change_config(_Config) ->
     User1 = #{username => <<"id">>},
     User2 = #{username => <<"dev:devid">>},
     ok = emqx_access_control:authenticate(User1, <<"password">>),
-    ok = emqx_access_control:authenticate(User2, <<"passwd2">>).
+    {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
+    ok = emqx_access_control:authenticate(User2, <<"passwd2">>),
+    %% clean data
+    ok = emqx_auth_username:remove_user(<<"id">>),
+    ok = emqx_auth_username:remove_user(<<"dev:devid">>).
 
 cli(_Config) ->
     ok = emqx_auth_username:cli(["add", "username", "password"]),
@@ -64,7 +68,11 @@ cli(_Config) ->
         emqx_auth_username:lookup_user(<<"username">>),
     ok = emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),
-    emqx_auth_username:cli(["list"]),
+
+    ok = emqx_auth_username:cli(["add", "user1", "pass1"]),
+    ok = emqx_auth_username:cli(["add", "user2", "pass2"]),
+    UserList = emqx_auth_username:cli(["list"]),
+    2 = length(UserList),
     emqx_auth_username:cli(usage).
 
 start_apps(App, DataDir) ->
@@ -74,4 +82,3 @@ start_apps(App, DataDir) ->
     Vals = proplists:get_value(App, NewConfig, []),
     [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
     application:ensure_all_started(App).
-
