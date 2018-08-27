@@ -41,7 +41,7 @@ end_per_suite(_Config) ->
 
 emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:add_user(<<"emqx_auth_username">>, <<"password">>),
-    User1 = #{username := <<"test_username">>},
+    User1 = #{username => <<"test_username">>},
     [{?TAB, <<"test_username">>, _P}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
     ok = emqx_access_control:authenticate(User1, <<"password">>),
@@ -53,8 +53,8 @@ change_config(_Config) ->
     application:set_env(emqx_auth_username, userlist,
                         [{"id", "password"}, {"dev:devid", "passwd2"}]),
     application:start(emqx_auth_username),
-    User1 = #{username := <<"id">>},
-    User2 = #{username := <<"dev:devid">>},
+    User1 = #{username => <<"id">>},
+    User2 = #{username => <<"dev:devid">>},
     ok = emqx_access_control:authenticate(User1, <<"password">>),
     ok = emqx_access_control:authenticate(User2, <<"passwd2">>).
 
