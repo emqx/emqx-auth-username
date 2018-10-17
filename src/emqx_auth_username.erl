@@ -114,6 +114,33 @@ init(Userlist) ->
     ok = lists:foreach(fun add_default_user/1, Userlist),
     {ok, undefined}.
 
+check(#{auth_method := <<"PLAIN">>, auth_data := AuthData}, _Password, _Opts)
+    when AuthData =:= undefined orelse AuthData =:= <<>> ->
+    {error, invalid_auth_data};
+check(#{username := Username, auth_method := <<"PLAIN">>, auth_data := AuthData}, _Password, _Opts) ->
+    case binary:split(AuthData, <<0>>, [global, trim]) of
+        [_, Username1, Password] -> 
+            Username2 = case Username of 
+                            undefined ->
+                                Username1;
+                            _->
+                                Username
+                        end,
+            case mnesia:dirty_read(?TAB, Username2) of
+                [] -> ignore;
+                [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
+                    case Hash =:= md5_hash(Salt, Password) of
+                        true -> {ok, #{username => Username2}};
+                        false -> {error, password_error}
+                    end
+            end;
+        _ ->
+            {error, invalid_auth_data}
+    end;
+check(#{auth_method := <<"PLAIN">>}, _Password, _Opts) ->
+    {error, invalid_auth_data};
+check(#{auth_method := _AuthMethod}, _Password, _Opts) ->
+    {error, bad_authentication_method};
 check(#{username := undefined}, _Password, _Opts) ->
     {error, username_undefined};
 check(_Credentials, undefined, _Opts) ->
