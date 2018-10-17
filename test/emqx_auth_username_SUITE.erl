@@ -42,11 +42,26 @@ end_per_suite(_Config) ->
 emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:add_user(<<"test_username">>, <<"password">>),
     User1 = #{username => <<"test_username">>},
+    User2 = #{username => undefined, auth_method => <<"PLAIN">>, 
+              auth_data => <<0,                                                             % U+0000
+                             116,101,115,116,95,117,115,101,114,110,97,109,101,             % <<"test_username">>
+                             0,                                                             % U+0000
+                             112,97,115,115,119,111,114,100>>},                             % <<"password">>
     [{?TAB, <<"test_username">>, _HashedPass}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
     ok = emqx_access_control:authenticate(User1, <<"password">>),
+    {ok, _} = emqx_access_control:authenticate(User2, undefined),
+    {ok, _} = emqx_access_control:authenticate(User2#{username  := <<"test_username">>,
+                                                      auth_data := <<0,                                 % U+0000
+                                                                    117,115,101,114,110,97,109,101,     % <<"username">>
+                                                                    0,                                  % U+0000
+                                                                    112,97,115,115,119,111,114,100>>}, undefined),
+    {error, bad_authentication_method} = emqx_access_control:authenticate(User2#{auth_method  := <<"SCRAM-SHA-1">>}, undefined),
+    {error, invalid_auth_data} = emqx_access_control:authenticate(#{auth_method => <<"PLAIN">>, auth_data => <<>>}, undefined),
+    {error, invalid_auth_data} = emqx_access_control:authenticate(#{auth_method => <<"PLAIN">>}, undefined),
     ok = emqx_auth_username:remove_user(<<"test_username">>),
-    {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
+    {error, _} = emqx_access_control:authenticate(User1, <<"password">>),
+    {error, _} = emqx_access_control:authenticate(User2, <<"password">>).
 
 change_config(_Config) ->
     application:stop(emqx_auth_username),
