@@ -17,6 +17,7 @@
 -compile(export_all).
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/emqx_mqtt.hrl").
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -28,7 +29,12 @@ all() ->
 
 groups() ->
     [{emqx_auth_username, [sequence],
-      [emqx_auth_username_api, change_config, cli]}].
+      [emqx_auth_username_api, 
+       t_enhanced_auth,
+       t_test_auth,
+       t_auth_protocol,
+       change_config,
+       cli]}].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
@@ -62,6 +68,223 @@ emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:remove_user(<<"test_username">>),
     {error, _} = emqx_access_control:authenticate(User1, <<"password">>),
     {error, _} = emqx_access_control:authenticate(User2, <<"password">>).
+
+t_enhanced_auth(_Config) ->
+    ok = emqx_auth_username:add_user(<<"admin">>, <<"public">>),
+    % authenticate with unsupported method. will failed
+    {ok, Sock} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"SCRAM-SHA-1">>,
+                                                        'Authentication-Data'   => <<0,97,100,109,105,110,          % admin
+                                                                                     0,112,117,98,108,105,99>>}})), % public
+    emqx_client_sock:send(Sock, Packet),
+    {ok, Data} = gen_tcp:recv(Sock, 0),
+    {ok, ?CONNACK_PACKET(?RC_BAD_AUTHENTICATION_METHOD), _} = raw_recv_pase(Data),
+    emqx_client_sock:close(Sock),
+
+    % authenticate with empty method. will failed
+    {ok, Sock1} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet1 = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<>>,
+                                                        'Authentication-Data'   => <<>>}})),
+    emqx_client_sock:send(Sock1, Packet1),
+    {ok, Data1} = gen_tcp:recv(Sock1, 0),
+    {ok, ?CONNACK_PACKET(?RC_MALFORMED_PACKET), _} = raw_recv_pase(Data1),
+    emqx_client_sock:close(Sock1),
+
+    % authenticate with empty data. will failed
+    {ok, Sock2} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet2 = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"PLAIN">>,
+                                                        'Authentication-Data'   => <<>>}})),
+    emqx_client_sock:send(Sock2, Packet2),
+    {ok, Data2} = gen_tcp:recv(Sock2, 0),
+    {ok, ?CONNACK_PACKET(?RC_NOT_AUTHORIZED), _} = raw_recv_pase(Data2),
+    emqx_client_sock:close(Sock2),
+
+    % authenticate with bad password. will failed
+    {ok, Sock3} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet3 = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"PLAIN">>,
+                                                        'Authentication-Data'   => <<0,97,100,109,105,110,              % admin
+                                                                                     0,112,117,98,108,105,100>>}})),    % publid
+    emqx_client_sock:send(Sock3, Packet3),
+    {ok, Data3} = gen_tcp:recv(Sock3, 0),
+    {ok, ?CONNACK_PACKET(?RC_NOT_AUTHORIZED), _} = raw_recv_pase(Data3),
+    emqx_client_sock:close(Sock3),
+
+    % will succeed
+    {ok, Sock4} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet4 = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"PLAIN">>,
+                                                        'Authentication-Data'   => <<0,97,100,109,105,110,
+                                                                                     0,112,117,98,108,105,99>>}})),
+    emqx_client_sock:send(Sock4, Packet4),
+    {ok, Data4} = gen_tcp:recv(Sock4, 0),
+    {ok, ?CONNACK_PACKET(?RC_SUCCESS), _} = raw_recv_pase(Data4),
+
+    % reauthenticate, will succeed
+    Packet5 = raw_send_serialise(?AUTH_PACKET(?RC_RE_AUTHENTICATE, #{'Authentication-Method' => <<"PLAIN">>,
+                                                                        'Authentication-Data'   => <<0,97,100,109,105,110,
+                                                                                                     0,112,117,98,108,105,99>>})),
+    emqx_client_sock:send(Sock4, Packet5),
+    {ok, Data5} = gen_tcp:recv(Sock4, 0),
+    {ok, ?AUTH_PACKET(?RC_SUCCESS), _} = raw_recv_pase(Data5),
+
+    % reauthenticate with bad password, will failed
+    Packet6 = raw_send_serialise(?AUTH_PACKET(?RC_RE_AUTHENTICATE, #{'Authentication-Method' => <<"PLAIN">>,
+                                                                        'Authentication-Data'   => <<0,97,100,109,105,110,
+                                                                                                     0,112,117,98,108,105,100>>})),
+    emqx_client_sock:send(Sock4, Packet6),
+    {ok, Data6} = gen_tcp:recv(Sock4, 0),
+    {ok, ?DISCONNECT_PACKET(?RC_NOT_AUTHORIZED), _} = raw_recv_pase(Data6),
+    emqx_client_sock:close(Sock4),
+    ok = emqx_auth_username:remove_user(<<"admin">>).
+
+t_test_auth(_Config) ->
+    ok = emqx_auth_username:add_user(<<"admin">>, <<"public">>),
+    % will return auth with continue
+    {ok, Sock} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                        'Authentication-Data'   => <<"continue">>}})),
+    emqx_client_sock:send(Sock, Packet),
+    {ok, Data} = gen_tcp:recv(Sock, 0),
+    {ok, ?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' := <<"TEST-AUTH">>,
+                                                   'Authentication-Data'   := <<"this is a test auth">>}), _} = raw_recv_pase(Data),
+
+    % will return auth with continue
+    Packet1 = raw_send_serialise(?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                                              'Authentication-Data'   => <<"continue">>})),
+    emqx_client_sock:send(Sock, Packet1),
+    {ok, Data1} = gen_tcp:recv(Sock, 0),
+    {ok, ?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' := <<"TEST-AUTH">>,
+                                                   'Authentication-Data'   := <<"this is a test auth">>}), _} = raw_recv_pase(Data1),
+
+    % will return connack with success
+    Packet2 = raw_send_serialise(?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                                              'Authentication-Data'   => <<"ok">>})),
+    emqx_client_sock:send(Sock, Packet2),
+    {ok, Data2} = gen_tcp:recv(Sock, 0),
+    {ok, ?CONNACK_PACKET(?RC_SUCCESS), _} = raw_recv_pase(Data2),  
+
+    % will return auth with continue
+    Packet3 = raw_send_serialise(?AUTH_PACKET(?RC_RE_AUTHENTICATE, #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                                        'Authentication-Data'   => <<"continue">>})),
+    emqx_client_sock:send(Sock, Packet3),
+    {ok, Data3} = gen_tcp:recv(Sock, 0),
+    {ok, ?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' := <<"TEST-AUTH">>,
+                                                   'Authentication-Data'   := <<"this is a test auth">>}), _} = raw_recv_pase(Data3),  
+
+    % will return auth with success
+    Packet4 = raw_send_serialise(?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                                              'Authentication-Data'   => <<"ok">>})),
+    emqx_client_sock:send(Sock, Packet4),
+    {ok, Data4} = gen_tcp:recv(Sock, 0),
+    {ok, ?AUTH_PACKET(?RC_SUCCESS), _} = raw_recv_pase(Data4), 
+
+    emqx_client_sock:close(Sock),
+    ok = emqx_auth_username:remove_user(<<"admin">>).
+
+t_auth_protocol(_Config) ->
+    ok = emqx_auth_username:add_user(<<"admin">>, <<"public">>),
+    % will return connack with success
+    {ok, Sock} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                                        client_id   = <<"mqtt_client">>,
+                                                        proto_ver   = ?MQTT_PROTO_V5,
+                                                        clean_start = false,
+                                                        username    = <<"admin">>,
+                                                        password    = <<"public">>})),
+
+    emqx_client_sock:send(Sock, Packet),
+    {ok, Data} = gen_tcp:recv(Sock, 0),
+    {ok, ?CONNACK_PACKET(?RC_SUCCESS), _} = raw_recv_pase(Data),
+
+    % will return disconnect
+    Packet1 = raw_send_serialise(?AUTH_PACKET(?RC_RE_AUTHENTICATE, #{'Authentication-Method' => <<"PLAIN">>,
+                                                                     'Authentication-Data'   => <<0,97,100,109,105,110,
+                                                                                                  0,112,117,98,108,105,99>>})),
+
+    emqx_client_sock:send(Sock, Packet1),
+    {ok, Data1} = gen_tcp:recv(Sock, 0),
+    {ok, ?DISCONNECT_PACKET(?RC_PROTOCOL_ERROR), _} = raw_recv_pase(Data1),
+    emqx_client_sock:close(Sock),
+
+    % connection will be closed
+    {ok, Sock2} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet2 = raw_send_serialise(?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' => <<"PLAIN">>,
+                                                                           'Authentication-Data'   => <<0,97,100,109,105,110,
+                                                                                                        0,112,117,98,108,105,99>>})),
+
+    emqx_client_sock:send(Sock2, Packet2),
+    {error, closed} = gen_tcp:recv(Sock2, 0),
+    emqx_client_sock:close(Sock2),
+
+    {ok, Sock3} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet3 = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                        'Authentication-Data'   => <<"continue">>}})),
+    emqx_client_sock:send(Sock3, Packet3),
+    {ok, Data3} = gen_tcp:recv(Sock3, 0),
+    {ok, ?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' := <<"TEST-AUTH">>,
+                                                   'Authentication-Data'   := <<"this is a test auth">>}), _} = raw_recv_pase(Data3),
+
+    Packet4 = raw_send_serialise(?AUTH_PACKET(?RC_RE_AUTHENTICATE, #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                                     'Authentication-Data'   => <<"ok">>})),
+    emqx_client_sock:send(Sock3, Packet4),
+    {ok, Data4} = gen_tcp:recv(Sock3, 0),
+    {ok, ?CONNACK_PACKET(?RC_PROTOCOL_ERROR), _} = raw_recv_pase(Data4), 
+    emqx_client_sock:close(Sock3),
+
+    {ok, Sock5} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet5 = raw_send_serialise(?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' => <<"PLAIN">>,
+                                                                           'Authentication-Data'   => <<0,97,100,109,105,110,
+                                                                                                        0,112,117,98,108,105,99>>})),
+
+    emqx_client_sock:send(Sock5, Packet5),
+    {error, closed} = gen_tcp:recv(Sock5, 0),
+    emqx_client_sock:close(Sock5),
+
+    {ok, Sock6} = emqx_client_sock:connect({127,0,0,1}, 1883, [binary, {packet, raw}, {active, false}], 3000),
+    Packet6 = raw_send_serialise(?CONNECT_PACKET(#mqtt_packet_connect{
+                                        client_id   = <<"mqtt_client">>,
+                                        proto_ver   = ?MQTT_PROTO_V5,
+                                        clean_start = false,
+                                        properties  = #{'Authentication-Method' => <<"TEST-AUTH">>,
+                                                        'Authentication-Data'   => <<"continue">>}})),
+    emqx_client_sock:send(Sock6, Packet6),
+    {ok, Data6} = gen_tcp:recv(Sock6, 0),
+    {ok, ?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE, #{'Authentication-Method' := <<"TEST-AUTH">>,
+                                                   'Authentication-Data'   := <<"this is a test auth">>}), _} = raw_recv_pase(Data6),
+
+    Packet7 = raw_send_serialise(?AUTH_PACKET(?RC_CONTINUE_AUTHENTICATE)),
+    emqx_client_sock:send(Sock6, Packet7),
+    {ok, Data7} = gen_tcp:recv(Sock6, 0),
+    {ok, ?CONNACK_PACKET(?RC_MALFORMED_PACKET), _} = raw_recv_pase(Data7), 
+    emqx_client_sock:close(Sock6),
+    ok = emqx_auth_username:remove_user(<<"admin">>).
 
 change_config(_Config) ->
     application:stop(emqx_auth_username),
@@ -97,3 +320,11 @@ start_apps(App, DataDir) ->
     Vals = proplists:get_value(App, NewConfig, []),
     [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
     application:ensure_all_started(App).
+
+raw_send_serialise(Packet) ->
+    emqx_frame:serialize(Packet, #{max_packet_size => ?MAX_PACKET_SIZE,
+                                   version         => ?MQTT_PROTO_V5}).
+
+raw_recv_pase(P) ->
+    emqx_frame:parse(P, {none, #{max_packet_size => ?MAX_PACKET_SIZE,
+                                 version         => ?MQTT_PROTO_V5} }).
