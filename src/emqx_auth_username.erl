@@ -114,8 +114,7 @@ init(Userlist) ->
     ok = lists:foreach(fun add_default_user/1, Userlist),
     {ok, undefined}.
 
-check(#{auth_method := <<"PLAIN">>, auth_data := AuthData}, _Password, _Opts)
-    when AuthData =:= undefined orelse AuthData =:= <<>> ->
+check(#{auth_method := <<"PLAIN">>, auth_data := <<>>}, _Password, _Opts) ->
     {error, invalid_auth_data};
 check(#{username := Username, auth_method := <<"PLAIN">>, auth_data := AuthData}, _Password, _Opts) ->
     case binary:split(AuthData, <<0>>, [global, trim]) of
