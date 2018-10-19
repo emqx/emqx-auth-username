@@ -118,18 +118,13 @@ check(#{auth_method := <<"PLAIN">>, auth_data := <<>>}, _Password, _Opts) ->
     {error, invalid_auth_data};
 check(#{username := Username, auth_method := <<"PLAIN">>, auth_data := AuthData}, _Password, _Opts) ->
     case binary:split(AuthData, <<0>>, [global, trim]) of
-        [_, Username1, Password] -> 
-            Username2 = case Username of 
-                            undefined ->
-                                Username1;
-                            _->
-                                Username
-                        end,
-            case mnesia:dirty_read(?TAB, Username2) of
+        [_, NewUsername, Password] -> 
+            Username1 = update_username_if_absent(Username, NewUsername),
+            case mnesia:dirty_read(?TAB, Username1) of
                 [] -> ignore;
                 [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
                     case Hash =:= md5_hash(Salt, Password) of
-                        true -> {ok, #{username => Username2}};
+                        true -> {ok, #{username => Username1}};
                         false -> {error, password_error}
                     end
             end;
@@ -170,3 +165,7 @@ md5_hash(SaltBin, Password) ->
 salt() ->
     emqx_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
 
+update_username_if_absent(undefined, NewUsername) ->
+    NewUsername;
+update_username_if_absent(Username, _NewUsername) ->
+    Username.
