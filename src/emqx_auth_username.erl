@@ -138,12 +138,6 @@ check(#{username := Username, auth_method := <<"PLAIN">>, auth_data := AuthData}
     end;
 check(#{auth_method := <<"PLAIN">>}, _Password, _Opts) ->
     {error, invalid_auth_data};
-check(#{auth_method := <<"TEST-AUTH">>, auth_data := <<"continue">>}, _Password, _Opts) ->
-    {continue, #{auth_data => <<"this is a test auth">>}};
-check(#{auth_method := <<"TEST-AUTH">>, auth_data := <<"ok">>}, _Password, _Opts) ->
-    {ok, #{username => <<"test">>}};
-check(#{auth_method := <<"TEST-AUTH">>}, _Password, _Opts) ->
-    {error, invalid_auth_data};
 check(#{auth_method := _AuthMethod}, _Password, _Opts) ->
     {error, bad_authentication_method};
 check(#{username := undefined}, _Password, _Opts) ->
