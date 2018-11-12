@@ -31,10 +31,10 @@ groups() ->
       [emqx_auth_username_api, change_config, cli]}].
 
 init_per_suite(Config) ->
-    [start_apps(App, {SchemaFile, ConfigFile}) ||
+    [start_apps(App, SchemaFile, ConfigFile) ||
         {App, SchemaFile, ConfigFile}
-            <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
-                       local_path("deps/emqx/etc/emqx.conf")},
+            <- [{emqx, deps_path(emqx, "priv/emqx.schema"),
+                       deps_path(emqx, "etc/emqx.conf")},
                 {emqx_auth_username, local_path("priv/emqx_auth_username.schema"),
                                      local_path("etc/emqx_auth_username.conf")}]],
     Config.
@@ -43,19 +43,25 @@ end_per_suite(_Config) ->
     application:stop(emqx_auth_username),
     application:stop(emqx).
 
-get_base_dir() ->
-    {file, Here} = code:is_loaded(?MODULE),
-    filename:dirname(filename:dirname(Here)).
+deps_path(App, RelativePath) ->
+    %% Note: not lib_dir because etc dir is not sym-link-ed to _build dir
+    %% but priv dir is
+    Path0 = code:priv_dir(App),
+    Path = case file:read_link(Path0) of
+               {ok, Resolved} -> Resolved;
+               {error, _} -> Path0
+           end,
+    filename:join([Path, "..", RelativePath]).
 
 local_path(RelativePath) ->
-    filename:join([get_base_dir(), RelativePath]).
+    deps_path(emqx_auth_username, RelativePath).
 
-start_apps(App, {SchemaFile, ConfigFile}) ->
-    read_schema_configs(App, {SchemaFile, ConfigFile}),
+start_apps(App, SchemaFile, ConfigFile) ->
+    read_schema_configs(App, SchemaFile, ConfigFile),
     set_special_configs(App),
     application:ensure_all_started(App).
 
-read_schema_configs(App, {SchemaFile, ConfigFile}) ->
+read_schema_configs(App, SchemaFile, ConfigFile) ->
     ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
     Schema = cuttlefish_schema:files([SchemaFile]),
     Conf = conf_parse:file(ConfigFile),
@@ -67,7 +73,7 @@ set_special_configs(emqx) ->
     application:set_env(emqx, allow_anonymous, false),
     application:set_env(emqx, enable_acl_cache, false),
     application:set_env(emqx, plugins_loaded_file,
-                        local_path("deps/emqx/test/emqx_SUITE_data/loaded_plugins"));
+                        deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins"));
 set_special_configs(_App) ->
     ok.
 

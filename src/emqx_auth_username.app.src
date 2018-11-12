@@ -1,0 +1,9 @@
+{application,emqx_auth_username,
+             [{description,"EMQ X Authentication with Username and Password"},
+              {vsn,"git"},
+              {modules,[]},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {mod,{emqx_auth_username_app, []}},
+              {env,[]}]}.
+
