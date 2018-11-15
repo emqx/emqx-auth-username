@@ -11,6 +11,7 @@ rel/example_project
 .erlang.mk/
 emqx_auth_username.d
 data/
+_build/
 .DS_Store
 cover/
 ct.coverdata
@@ -18,3 +19,4 @@ eunit.coverdata
 logs/
 test/ct.cover.spec
 rebar.lock
+rebar3.crashdump
