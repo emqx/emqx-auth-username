@@ -64,9 +64,7 @@ start_apps(App, SchemaFile, ConfigFile) ->
 read_schema_configs(App, SchemaFile, ConfigFile) ->
     ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
     Schema = cuttlefish_schema:files([SchemaFile]),
-    ct:log("Schema: ~p",[Schema]),
     Conf = conf_parse:file(ConfigFile),
-    ct:log("Conf: ~p",[Conf]),
     NewConfig = cuttlefish_generator:map(Schema, Conf),
     Vals = proplists:get_value(App, NewConfig, []),
     [application:set_env(App, Par, Value) || {Par, Value} <- Vals].
