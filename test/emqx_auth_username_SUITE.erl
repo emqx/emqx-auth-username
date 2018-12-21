@@ -101,14 +101,14 @@ change_config(_Config) ->
     ok = emqx_auth_username:remove_user(<<"dev:devid">>).
 
 cli(_Config) ->
-    ok = emqx_auth_username:cli(["add", "username", "password"]),
+    emqx_auth_username:cli(["add", "username", "password"]),
     [{?TAB, <<"username">>, _M}] =
         emqx_auth_username:lookup_user(<<"username">>),
-    ok = emqx_auth_username:cli(["del", "username"]),
+    emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),
 
-    ok = emqx_auth_username:cli(["add", "user1", "pass1"]),
-    ok = emqx_auth_username:cli(["add", "user2", "pass2"]),
+    emqx_auth_username:cli(["add", "user1", "pass1"]),
+    emqx_auth_username:cli(["add", "user2", "pass2"]),
     UserList = emqx_auth_username:cli(["list"]),
     2 = length(UserList),
     emqx_auth_username:cli(usage).
