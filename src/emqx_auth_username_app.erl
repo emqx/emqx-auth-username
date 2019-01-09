@@ -27,8 +27,7 @@
 -define(APP, emqx_auth_username).
 
 start(_Type, _Args) ->
-    Userlist = application:get_env(?APP, userlist, []),
-    emqx_access_control:register_mod(auth, ?APP, Userlist),
+    emqx_access_control:register_mod(auth, ?APP, undefined),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->

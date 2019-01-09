@@ -91,12 +91,6 @@ insert_user(User = #?AUTH_USERNAME_TAB{username = Username}) ->
         [_|_] -> mnesia:abort(existed)
     end.
 
-add_default_user(Username, Password) when is_atom(Username) ->
-    add_default_user(atom_to_list(Username), Password);
-
-add_default_user(Username, Password) ->
-    add_user(iolist_to_binary(Username), iolist_to_binary(Password)).
-
 %% @doc Lookup user by username
 -spec(lookup_user(binary()) -> list()).
 lookup_user(Username) ->
@@ -105,7 +99,14 @@ lookup_user(Username) ->
 %% @doc Remove user
 -spec(remove_user(binary()) -> ok | {error, any()}).
 remove_user(Username) ->
-    ret(mnesia:transaction(fun mnesia:delete/1, [{?AUTH_USERNAME_TAB, Username}])).
+    ret(mnesia:transaction(fun delete_user/1, [Username])).
+
+delete_user(Username) ->
+    case mnesia:read(?AUTH_USERNAME_TAB, Username) of
+        []  -> mnesia:abort(not_existed);
+        [_] -> mnesia:delete({?AUTH_USERNAME_TAB, Username})
+    end.
+
 
 ret({atomic, ok})     -> ok;
 ret({aborted, Error}) -> {error, Error}.
@@ -118,14 +119,11 @@ all_users() -> mnesia:dirty_all_keys(?AUTH_USERNAME_TAB).
 %% emqx_auth_mod callbacks
 %%--------------------------------------------------------------------
 
-init(Userlist) ->
+init(_) ->
     ok = ekka_mnesia:create_table(?AUTH_USERNAME_TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?AUTH_USERNAME_TAB)}]),
     ok = ekka_mnesia:copy_table(?AUTH_USERNAME_TAB, disc_copies),
-    lists:foreach(fun({Username, Password}) ->
-                      add_default_user(Username, Password)
-                  end, Userlist),
     emqx_ctl:register_cmd(users, {?MODULE, cli}, []),
     {ok, undefined}.
 
@@ -137,8 +135,8 @@ check(#mqtt_client{username = Username}, Password, _Opts) ->
     case mnesia:dirty_read(?AUTH_USERNAME_TAB, Username) of
         [] ->
             ignore;
-        [#?AUTH_USERNAME_TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
-            case Hash =:= md5_hash(Salt, Password) of
+        [#?AUTH_USERNAME_TAB{password = HashPassword}] ->
+            case HashPassword =:= hash(Password) of
                 true -> ok;
                 false -> {error, password_error}
             end
@@ -150,13 +148,6 @@ description() ->
 %%--------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------
-
 hash(Password) ->
-    SaltBin = salt(), <<SaltBin/binary, (md5_hash(SaltBin, Password))/binary>>.
-
-md5_hash(SaltBin, Password) ->
-    erlang:md5(<<SaltBin/binary, Password/binary>>).
-
-salt() ->
-    emqx_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
+    emqx_auth_mod:passwd_hash(list_to_atom(application:get_env(emqx_auth_username, password_hash, plain)), Password).
 
