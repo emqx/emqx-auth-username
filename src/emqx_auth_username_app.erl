@@ -25,12 +25,15 @@
 start(_Type, _Args) ->
     emqx_ctl:register_command(users, {?APP, cli}, []),
     Userlist = application:get_env(?APP, userlist, []),
-    emqx_access_control:register_mod(auth, ?APP, Userlist),
+    HashOpt = application:get_env(?APP, config, []),
+    emqx_access_control:register_mod(auth, ?APP, {Userlist, HashOpt}),
+    emqx_auth_username_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
     emqx_ctl:unregister_command(users),
-    emqx_access_control:unregister_mod(auth, ?APP).
+    emqx_access_control:unregister_mod(auth, ?APP),
+    emqx_auth_username_cfg:unregister().
 
 %%--------------------------------------------------------------------
 

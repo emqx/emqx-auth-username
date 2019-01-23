@@ -27,6 +27,7 @@
 
 -define(TAB, ?MODULE).
 -record(?TAB, {username, password}).
+-record(state, {hash_type}).
 
 %%-----------------------------------------------------------------------------
 %% CLI
@@ -70,7 +71,9 @@ is_enabled() ->
 %% @doc Add User
 -spec(add_user(binary(), binary()) -> ok | {error, any()}).
 add_user(Username, Password) ->
-    User = #?TAB{username = Username, password = hash(Password)},
+    io:format("~p~n", [Password]),
+    io:format("~p~n", [encrypted_data(Password)]),
+    User = #?TAB{username = Username, password = encrypted_data(Password)},
     ret(mnesia:transaction(fun insert_user/1, [User])).
 
 insert_user(User = #?TAB{username = Username}) ->
@@ -106,27 +109,29 @@ all_users() -> mnesia:dirty_all_keys(?TAB).
 %% emqx_auth_mod callbacks
 %%-----------------------------------------------------------------------------
 
-init(Userlist) ->
+init({Userlist, HashOpt}) ->
+    HashType = proplists:get_value(password_hash, HashOpt, md5),
+    State = #state{hash_type = HashType},
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies),
     ok = lists:foreach(fun add_default_user/1, Userlist),
-    {ok, undefined}.
+    {ok, State}.
 
 check(#{username := undefined}, _Password, _Opts) ->
     {error, username_undefined};
 check(_Credentials, undefined, _Opts) ->
     {error, password_undefined};
-check(#{username := Username}, Password, _Opts) ->
+check(#{username := Username}, Password, #state{hash_type = HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
         [] -> ignore;
-        [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
-            case Hash =:= md5_hash(Salt, Password) of
+        [#?TAB{password = Password1}] ->
+            case Password1 =:= hash(Password, HashType) of
                 true -> ok;
                 false -> {error, password_error}
             end
-    end.
+        end.
 
 description() ->
     "Username password Authentication Module".
@@ -135,12 +140,25 @@ description() ->
 %% Internal functions
 %%-----------------------------------------------------------------------------
 
-hash(Password) ->
-    SaltBin = salt(), <<SaltBin/binary, (md5_hash(SaltBin, Password))/binary>>.
+encrypted_data(Password) ->
+    HashOpt = get_passwordhash_config(),
+    HashType = proplists:get_value(password_hash, HashOpt, md5),
+    hash(Password, HashType).
+    
+get_passwordhash_config() ->
+    application:get_env(emqx_auth_username, config, []).
 
-md5_hash(SaltBin, Password) ->
-    erlang:md5(<<SaltBin/binary, Password/binary>>).
+hash(Password, HashType) ->
+    emqx_passwd:hash(HashType, Password);
+hash(Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
+    emqx_passwd:hash(pbkdf2, {salt, Password, Macfun, Iterations, Dklen});
+hash(Password, {salt, bcrypt}) ->
+    emqx_passwd:hash(bcrypt, {salt, Password});
+hash(Password, {salt, HashType}) ->
+    emqx_passwd:hash(HashType, <<salt/binary, Password/binary>>);
+hash(Password, {HashType, salt}) ->
+    emqx_passwd:hash(HashType, <<Password/binary, salt/binary>>).
 
-salt() ->
-    emqx_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
+
+
 
