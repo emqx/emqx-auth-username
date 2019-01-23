@@ -71,8 +71,6 @@ is_enabled() ->
 %% @doc Add User
 -spec(add_user(binary(), binary()) -> ok | {error, any()}).
 add_user(Username, Password) ->
-    io:format("~p~n", [Password]),
-    io:format("~p~n", [encrypted_data(Password)]),
     User = #?TAB{username = Username, password = encrypted_data(Password)},
     ret(mnesia:transaction(fun insert_user/1, [User])).
 

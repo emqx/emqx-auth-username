@@ -104,12 +104,12 @@ change_config(_Config) ->
     ok = emqx_auth_username:remove_user(<<"dev:devid">>).
 
 cli(_Config) ->
+    [ mnesia:dirty_delete({emqx_auth_username, Username}) ||  Username <- mnesia:dirty_all_keys(emqx_auth_username)],
     emqx_auth_username:cli(["add", "username", "password"]),
     [{?TAB, <<"username">>, _M}] =
         emqx_auth_username:lookup_user(<<"username">>),
     emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),
-
     emqx_auth_username:cli(["add", "user1", "pass1"]),
     emqx_auth_username:cli(["add", "user2", "pass2"]),
     UserList = emqx_auth_username:cli(["list"]),
