@@ -9,10 +9,13 @@
   {datatype, string}
 ]}.
 
+<<<<<<< HEAD
 {mapping, "auth.user.password_hash", "emqx_auth_username.config", [
   {datatype, string}
 ]}.
 
+=======
+>>>>>>> emqx30
 {translation, "emqx_auth_username.userlist", fun(Conf) ->
   Userlist = cuttlefish_variable:filter_by_prefix("auth.user", Conf),
   lists:foldl(
@@ -22,6 +25,7 @@
         AccIn
   	end, [], Userlist)
 end}.
+<<<<<<< HEAD
 
 {translation, "emqx_auth_username.config", fun(Conf) ->
   PasswordHash = cuttlefish:conf_get("auth.user.password_hash", Conf),
@@ -34,3 +38,5 @@ end}.
     end,
     [{password_hash, HashValue}]
 end}.
+=======
+>>>>>>> emqx30

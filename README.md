@@ -18,11 +18,14 @@ etc/emqx_auth_username.conf:
 ```
 ##auth.user.$N.username = admin
 ##auth.user.$N.password = public
+<<<<<<< HEAD
 
 ## Password hash.
 ##
 ## Value: plain | md5 | sha | sha256 | bcrypt
 auth.user.password_hash = md5
+=======
+>>>>>>> emqx30
 ```
 
 Load the Plugin
