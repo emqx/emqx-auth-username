@@ -35,12 +35,15 @@ init_per_suite(Config) ->
         {App, SchemaFile, ConfigFile}
             <- [{emqx, deps_path(emqx, "priv/emqx.schema"),
                        deps_path(emqx, "etc/emqx.conf")},
+                {emqx_management, deps_path(emqx_management, "priv/emqx_management.schema"),
+                                  deps_path(emqx_management, "etc/emqx_management.conf")},
                 {emqx_auth_username, local_path("priv/emqx_auth_username.schema"),
                                      local_path("etc/emqx_auth_username.conf")}]],
     Config.
 
 end_per_suite(_Config) ->
     application:stop(emqx_auth_username),
+    application:stop(emqx_management),
     application:stop(emqx).
 
 deps_path(App, RelativePath) ->

@@ -1,13 +1,15 @@
 PROJECT = emqx_auth_username
 PROJECT_DESCRIPTION = EMQ X Authentication with Username/Password
-PROJECT_VERSION = 3.0
+PROJECT_VERSION = 3.0.0
 
-DEPS = emqx_passwd
+DEPS = emqx_passwd clique
 dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v1.0
+dep_clique      = git-emqx https://github.com/emqx/clique v0.3.11
 
-BUILD_DEPS = emqx cuttlefish
-dep_emqx = git-emqx https://github.com/emqx/emqx master
+BUILD_DEPS = emqx cuttlefish emqx_management
+dep_emqx = git-emqx https://github.com/emqx/emqx emqx30
 dep_cuttlefish = git-emqx https://github.com/emqx/cuttlefish v2.2.1
+dep_emqx_management = git-emqx https://github.com/emqx/emqx-management emqx30
 
 NO_AUTOPATCH = cuttlefish
 
