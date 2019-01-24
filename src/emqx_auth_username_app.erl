@@ -33,7 +33,7 @@ start(_Type, _Args) ->
 stop(_State) ->
     emqx_access_control:unregister_mod(auth, ?APP),
     emqx_auth_username_cfg:unregister(),
-    emqx_ctl:unregister_command().
+    emqx_ctl:unregister_command(users).
 
 %%--------------------------------------------------------------------
 
