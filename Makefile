@@ -2,8 +2,10 @@ PROJECT = emqx_auth_username
 PROJECT_DESCRIPTION = EMQ X Authentication with Username/Password
 PROJECT_VERSION = 3.0
 
-BUILD_DEPS = emqx
+BUILD_DEPS = emqx emqx_management emqx_passwd
 dep_emqx = git-emqx https://github.com/emqx/emqx emqx30
+dep_emqx_management = git-emqx https://github.com/emqx/emqx-management emqx30
+dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd emqx30
 
 NO_AUTOPATCH = cuttlefish
 
@@ -12,7 +14,6 @@ ERLC_OPTS += +debug_info
 TEST_ERLC_OPTS += +debug_info
 
 COVER = true
-
 
 $(shell [ -f erlang.mk ] || curl -s -o erlang.mk https://raw.githubusercontent.com/emqx/erlmk/master/erlang.mk)
 include erlang.mk
