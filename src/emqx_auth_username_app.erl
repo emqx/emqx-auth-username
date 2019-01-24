@@ -23,9 +23,10 @@
 -define(APP, emqx_auth_username).
 
 start(_Type, _Args) ->
-    emqx_ctl:register_command(users, {?APP, cli}, []),
     Userlist = application:get_env(?APP, userlist, []),
-    emqx_access_control:register_mod(auth, ?APP, Userlist),
+    HashType = application:get_env(?APP, password_hash, md5),
+    emqx_access_control:register_mod(auth, ?APP, {Userlist, HashType}),
+    emqx_auth_username_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
