@@ -23,6 +23,7 @@
 -define(APP, emqx_auth_username).
 
 start(_Type, _Args) ->
+    emqx_ctl:register_command(users, {?APP, cli}, []),
     Userlist = application:get_env(?APP, userlist, []),
     HashType = application:get_env(?APP, password_hash, md5),
     emqx_access_control:register_mod(auth, ?APP, {Userlist, HashType}),
