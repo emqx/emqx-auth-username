@@ -31,8 +31,9 @@ start(_Type, _Args) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqx_ctl:unregister_command(users),
-    emqx_access_control:unregister_mod(auth, ?APP).
+    emqx_access_control:unregister_mod(auth, ?APP),
+    emqx_auth_username_cfg:unregister(),
+    emqx_ctl:unregister_command().
 
 %%--------------------------------------------------------------------
 
