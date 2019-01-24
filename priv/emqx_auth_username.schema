@@ -10,7 +10,8 @@
 ]}.
 
 {mapping, "auth.user.password_hash", "emqx_auth_username.password_hash", [
-  {datatype, atom}
+  {default, md5},
+  {datatype, {enum, [plain, md5, sha, sha256]}}
 ]}.
 
 {translation, "emqx_auth_username.userlist", fun(Conf) ->
