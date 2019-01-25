@@ -10,7 +10,7 @@
 ]}.
 
 {mapping, "auth.user.password_hash", "emqx_auth_username.password_hash", [
-  {default, md5},
+  {default, sha256},
   {datatype, {enum, [plain, md5, sha, sha256]}}
 ]}.
 
