@@ -138,7 +138,7 @@ description() ->
 %%-----------------------------------------------------------------------------
 
 encrypted_data(Password) ->
-    HashType = application:get_env(emqx_auth_username, password_hash, md5),
+    HashType = application:get_env(emqx_auth_username, password_hash, sha256),
     SaltBin = salt(),
     <<SaltBin/binary, (hash(Password, SaltBin, HashType))/binary>>.
 
