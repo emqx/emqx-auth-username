@@ -27,6 +27,7 @@
 
 -define(TAB, ?MODULE).
 -record(?TAB, {username, password}).
+-record(state, {hash_type}).
 
 %%-----------------------------------------------------------------------------
 %% CLI
@@ -70,7 +71,7 @@ is_enabled() ->
 %% @doc Add User
 -spec(add_user(binary(), binary()) -> ok | {error, any()}).
 add_user(Username, Password) ->
-    User = #?TAB{username = Username, password = hash(Password)},
+    User = #?TAB{username = Username, password = encrypted_data(Password)},
     ret(mnesia:transaction(fun insert_user/1, [User])).
 
 insert_user(User = #?TAB{username = Username}) ->
@@ -106,23 +107,24 @@ all_users() -> mnesia:dirty_all_keys(?TAB).
 %% emqx_auth_mod callbacks
 %%-----------------------------------------------------------------------------
 
-init(Userlist) ->
+init({Userlist, HashType}) ->
+    State = #state{hash_type = HashType},
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies),
     ok = lists:foreach(fun add_default_user/1, Userlist),
-    {ok, undefined}.
+    {ok, State}.
 
 check(#{username := undefined}, _Password, _Opts) ->
     {error, username_undefined};
 check(_Credentials, undefined, _Opts) ->
     {error, password_undefined};
-check(#{username := Username}, Password, _Opts) ->
+check(#{username := Username}, Password, #state{hash_type = HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
         [] -> ignore;
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
-            case Hash =:= md5_hash(Salt, Password) of
+            case Hash =:= hash(Password, Salt, HashType) of
                 true -> ok;
                 false -> {error, password_error}
             end
@@ -135,12 +137,14 @@ description() ->
 %% Internal functions
 %%-----------------------------------------------------------------------------
 
-hash(Password) ->
-    SaltBin = salt(), <<SaltBin/binary, (md5_hash(SaltBin, Password))/binary>>.
+encrypted_data(Password) ->
+    HashType = application:get_env(emqx_auth_username, password_hash, sha256),
+    SaltBin = salt(),
+    <<SaltBin/binary, (hash(Password, SaltBin, HashType))/binary>>.
 
-md5_hash(SaltBin, Password) ->
-    erlang:md5(<<SaltBin/binary, Password/binary>>).
+hash(Password, SaltBin, HashType) ->
+    emqx_passwd:hash(HashType, <<SaltBin/binary, Password/binary>>).
 
 salt() ->
-    emqx_time:seed(), Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
-
+    rand:seed(exsplus, erlang:timestamp()),
+    Salt = rand:uniform(16#ffffffff), <<Salt:32>>.

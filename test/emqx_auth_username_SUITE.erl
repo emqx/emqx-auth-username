@@ -35,12 +35,15 @@ init_per_suite(Config) ->
         {App, SchemaFile, ConfigFile}
             <- [{emqx, deps_path(emqx, "priv/emqx.schema"),
                        deps_path(emqx, "etc/emqx.conf")},
+                {emqx_management, deps_path(emqx_management, "priv/emqx_management.schema"),
+                                  deps_path(emqx_management, "etc/emqx_management.conf")},
                 {emqx_auth_username, local_path("priv/emqx_auth_username.schema"),
                                      local_path("etc/emqx_auth_username.conf")}]],
     Config.
 
 end_per_suite(_Config) ->
     application:stop(emqx_auth_username),
+    application:stop(emqx_management),
     application:stop(emqx).
 
 deps_path(App, RelativePath) ->
@@ -101,12 +104,12 @@ change_config(_Config) ->
     ok = emqx_auth_username:remove_user(<<"dev:devid">>).
 
 cli(_Config) ->
+    [ mnesia:dirty_delete({emqx_auth_username, Username}) ||  Username <- mnesia:dirty_all_keys(emqx_auth_username)],
     emqx_auth_username:cli(["add", "username", "password"]),
     [{?TAB, <<"username">>, _M}] =
         emqx_auth_username:lookup_user(<<"username">>),
     emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),
-
     emqx_auth_username:cli(["add", "user1", "pass1"]),
     emqx_auth_username:cli(["add", "user2", "pass2"]),
     UserList = emqx_auth_username:cli(["list"]),
