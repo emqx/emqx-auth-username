@@ -45,21 +45,21 @@ cli(["add", Username, Password]) ->
         emqx_cli:print("~p~n", [Ok])
     end);
 
-cli(["update", Username, Password]) ->
+cli(["update", Username, NewPassword]) ->
     if_enabled(fun() ->
-        Ok = update_user(iolist_to_binary(Username), iolist_to_binary(Password)),
+        Ok = update_user(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
         emqx_cli:print("~p~n", [Ok])
     end);
 
 cli(["del", Username]) ->
     if_enabled(fun() ->
-       emqx_cli:print("~p~n", [remove_user(iolist_to_binary(Username))])
+        emqx_cli:print("~p~n", [remove_user(iolist_to_binary(Username))])
     end);
 
 cli(_) ->
     emqx_cli:usage([{"users list", "List users"},
                     {"users add <Username> <Password>", "Add User"},
-                    {"users update <Username> <Password>", "Update User"},
+                    {"users update <Username> <NewPassword>", "Update User"},
                     {"users del <Username>", "Delete User"}]).
 
 if_enabled(Fun) ->
@@ -89,8 +89,8 @@ insert_user(User = #?TAB{username = Username}) ->
 
 %% @doc Update User
 -spec(update_user(binary(), binary()) -> ok | {error, any()}).
-update_user(Username, Password) ->
-    User = #?TAB{username = Username, password = encrypted_data(Password)},
+update_user(Username, NewPassword) ->
+    User = #?TAB{username = Username, password = encrypted_data(NewPassword)},
     ret(mnesia:transaction(fun do_update_user/1, [User])).
 
 do_update_user(User = #?TAB{username = Username}) ->
