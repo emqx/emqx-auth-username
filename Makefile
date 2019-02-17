@@ -40,16 +40,16 @@ distclean::
 	@rm -f rebar.lock compile_commands.json cuttlefish
 
 rebar-deps:
-	rebar3 as $(profile) get-deps
+	rebar3 get-deps
 
 rebar-clean:
-	@rebar3 as $(profile) clean
+	@rebar3 clean
 
 rebar-compile: rebar-deps
-	rebar3 as $(profile) compile
+	rebar3 compile
 
 rebar-ct: app.config
-	rebar3 as $(profile) ct
+	rebar3 ct
 
 rebar-xref:
-	@rebar3 as $(profile) xref
+	@rebar3 xref
