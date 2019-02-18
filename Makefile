@@ -27,8 +27,6 @@ include erlang.mk
 
 CUTTLEFISH_SCRIPT = _build/default/lib/cuttlefish/cuttlefish
 
-profile = $(shell git branch | grep -e "^*" | cut -d' ' -f 2)
-
 app.config: $(CUTTLEFISH_SCRIPT) etc/emqx_auth_username.conf
 	$(verbose) $(CUTTLEFISH_SCRIPT) -l info -e etc/ -c etc/emqx_auth_username.conf -i priv/emqx_auth_username.schema -d data
 
