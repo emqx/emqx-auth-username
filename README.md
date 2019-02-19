@@ -22,7 +22,7 @@ etc/emqx_auth_username.conf:
 ## Password hash.
 ##
 ## Value: plain | md5 | sha | sha256 
-auth.user.password_hash = md5
+auth.user.password_hash = sha256
 ```
 
 Load the Plugin
