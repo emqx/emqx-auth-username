@@ -2,7 +2,7 @@ PROJECT = emqx_auth_username
 PROJECT_DESCRIPTION = EMQ X Authentication with Username/Password
 
 CUR_BRANCH := $(shell git branch | grep -e "^*" | cut -d' ' -f 2)
-BRANCH := $(if $(filter $(CUR_BRANCH), master develop testing), $(CUR_BRANCH), testing)
+BRANCH := $(if $(filter $(CUR_BRANCH), master develop), $(CUR_BRANCH), develop)
 
 DEPS = emqx_passwd clique
 dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v1.0
