@@ -21,7 +21,7 @@
 %% CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
--export([add_user/2, remove_user/1, lookup_user/1, all_users/0]).
+-export([add_user/2, update_password/2, remove_user/1, lookup_user/1, all_users/0]).
 %% emqx_auth callbacks
 -export([init/1, check/3, description/0]).
 
@@ -45,6 +45,12 @@ cli(["add", Username, Password]) ->
         emqx_cli:print("~p~n", [Ok])
     end);
 
+cli(["update", Username, NewPassword]) ->
+    if_enabled(fun() ->
+        Ok = update_password(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
+        emqx_cli:print("~p~n", [Ok])
+    end);
+
 cli(["del", Username]) ->
     if_enabled(fun() ->
         emqx_cli:print("~p~n", [remove_user(iolist_to_binary(Username))])
@@ -53,6 +59,7 @@ cli(["del", Username]) ->
 cli(_) ->
     emqx_cli:usage([{"users list", "List users"},
                     {"users add <Username> <Password>", "Add User"},
+                    {"users update <Username> <NewPassword>", "Update User"},
                     {"users del <Username>", "Delete User"}]).
 
 if_enabled(Fun) ->
@@ -78,6 +85,18 @@ insert_user(User = #?TAB{username = Username}) ->
     case mnesia:read(?TAB, Username) of
         []    -> mnesia:write(User);
         [_|_] -> mnesia:abort(existed)
+    end.
+
+%% @doc Update User
+-spec(update_password(binary(), binary()) -> ok | {error, any()}).
+update_password(Username, NewPassword) ->
+    User = #?TAB{username = Username, password = encrypted_data(NewPassword)},
+    ret(mnesia:transaction(fun do_update_password/1, [User])).
+
+do_update_password(User = #?TAB{username = Username}) ->
+    case mnesia:read(?TAB, Username) of
+        [_|_] -> mnesia:write(User);
+        [] -> mnesia:abort(noexisted)
     end.
 
 add_default_user({Username, Password}) when is_atom(Username) ->
