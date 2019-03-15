@@ -18,25 +18,25 @@
 
 -rest_api(#{name   => list_username,
             method => 'GET',
-            path   => "/emqx_auth_username/list/",
+            path   => "/emqx_auth_username/list",
             func   => list,
             descr  => "List available username in the cluster"}).
 
 -rest_api(#{name   => add_username,
             method => 'POST',
-            path   => "/emqx_auth_username/add/",
+            path   => "/emqx_auth_username/add",
             func   => add,
             descr  => "Add username in the cluster"}).
 
 -rest_api(#{name   => update_username,
             method => 'PUT',
-            path   => "/emqx_auth_username/:bin:username/",
+            path   => "/emqx_auth_username/:bin:username",
             func   => update,
             descr  => "Update username in the cluster"}).
 
 -rest_api(#{name   => delete_username,
             method => 'DELETE',
-            path   => "/emqx_auth_username/:bin:username/",
+            path   => "/emqx_auth_username/:bin:username",
             func   => delete,
             descr  => "Delete username in the cluster"}).
 
