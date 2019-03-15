@@ -18,6 +18,7 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
+-include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 
 -define(TAB, emqx_auth_username).
@@ -28,7 +29,7 @@ all() ->
 
 groups() ->
     [{emqx_auth_username, [sequence],
-      [emqx_auth_username_api, change_config, cli]}].
+      [emqx_auth_username_api, emqx_auth_username_rest_api, change_config, cli]}].
 
 init_per_suite(Config) ->
     [start_apps(App, SchemaFile, ConfigFile) ||
@@ -86,6 +87,32 @@ emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:remove_user(<<"test_username">>),
     {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
 
+emqx_auth_username_rest_api(_Config) ->
+    Username = <<"username">>,
+    Password = <<"password">>,
+    Password1 = <<"password1">>,
+    User = #{username => Username},
+
+    ?assertEqual(return(),
+                 emqx_auth_username_api:add(#{}, rest_params(Username, Password))),
+    ?assertEqual(return({error, existed}),
+                 emqx_auth_username_api:add(#{}, rest_params(Username, Password))),
+    ?assertEqual(return([Username]),
+                 emqx_auth_username_api:list(#{}, [])),
+
+    ok = emqx_access_control:authenticate(User, Password),
+
+    ?assertEqual(return(),
+                 emqx_auth_username_api:update(rest_binding(Username), rest_params(Password))),
+    ?assertEqual(return({error, noexisted}),
+                 emqx_auth_username_api:update(#{username => <<"another_user">>}, rest_params(<<"another_passwd">>))),
+
+    {error, password_error} = emqx_access_control:authenticate(User, Password1),
+
+    ?assertEqual(return(),
+                 emqx_auth_username_api:delete(rest_binding(Username), [])),
+    {error, _} = emqx_access_control:authenticate(User, Password).
+
 change_config(_Config) ->
     application:stop(emqx_auth_username),
     application:set_env(emqx_auth_username, userlist,
@@ -124,3 +151,24 @@ cli(_Config) ->
     UserList = emqx_auth_username:cli(["list"]),
     2 = length(UserList),
     emqx_auth_username:cli(usage).
+
+%%------------------------------------------------------------------------------
+%% Helpers
+%%------------------------------------------------------------------------------
+rest_params(Passwd) ->
+    [{<<"password">>, Passwd}].
+
+rest_params(Username, Passwd) ->
+    [{<<"username">>, Username},
+     {<<"password">>, Passwd}].
+
+rest_binding(Username) ->
+    #{username => Username}.
+
+return() ->
+    {ok, [{code, 0}]}.
+return({error, Err}) ->
+    {ok, [{message, Err}]};
+return(Data) ->
+    {ok, [{code, 0}, {data, Data}]}.
+
