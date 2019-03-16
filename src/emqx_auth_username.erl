@@ -14,15 +14,12 @@
 
 -module(emqx_auth_username).
 
--behaviour(emqx_auth_mod).
-
 -include_lib("emqx/include/emqx.hrl").
 
 %% CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
 -export([add_user/2, update_password/2, remove_user/1, lookup_user/1, all_users/0]).
-%% emqx_auth callbacks
 -export([init/1, check/2, description/0]).
 
 -define(TAB, ?MODULE).
