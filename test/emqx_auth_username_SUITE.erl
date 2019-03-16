@@ -81,12 +81,13 @@ set_special_configs(_App) ->
 
 emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:add_user(<<"test_username">>, <<"password">>),
-    User1 = #{username => <<"test_username">>},
     [{?TAB, <<"test_username">>, _HashedPass}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
-    ok = emqx_access_control:authenticate(User1, <<"password">>),
+    User1 = #{username => <<"test_username">>,
+              password => <<"password">>},
+    {ok, _} = emqx_access_control:authenticate(User1),
     ok = emqx_auth_username:remove_user(<<"test_username">>),
-    {error, _} = emqx_access_control:authenticate(User1, <<"password">>).
+    {error, _} = emqx_access_control:authenticate(User1).
 
 emqx_auth_username_rest_api(_Config) ->
     Username = <<"username">>,
@@ -101,35 +102,35 @@ emqx_auth_username_rest_api(_Config) ->
     ?assertEqual(return([Username]),
                  emqx_auth_username_api:list(#{}, [])),
 
-    dbg:tracer(), dbg:p(all, call), dbg:tpl(?MODULE, match_password, 2, x),
-
     {ok, [{code, 0}, {data, Data}]} =
         emqx_auth_username_api:lookup(rest_binding(Username), []),
     ?assertEqual(true, match_password(get_value(username, Data),  Password)),
 
-    ok = emqx_access_control:authenticate(User, Password),
+    {ok, _} = emqx_access_control:authenticate(User#{password => Password}),
 
     ?assertEqual(return(),
                  emqx_auth_username_api:update(rest_binding(Username), rest_params(Password))),
     ?assertEqual(return({error, noexisted}),
                  emqx_auth_username_api:update(#{username => <<"another_user">>}, rest_params(<<"another_passwd">>))),
 
-    {error, password_error} = emqx_access_control:authenticate(User, Password1),
+    {error, _} = emqx_access_control:authenticate(User#{password => Password1}),
 
     ?assertEqual(return(),
                  emqx_auth_username_api:delete(rest_binding(Username), [])),
-    {error, _} = emqx_access_control:authenticate(User, Password).
+    {error, _} = emqx_access_control:authenticate(User#{password => Password}).
 
 change_config(_Config) ->
     application:stop(emqx_auth_username),
     application:set_env(emqx_auth_username, userlist,
                         [{"id", "password"}, {"dev:devid", "passwd2"}]),
     application:start(emqx_auth_username),
-    User1 = #{username => <<"id">>},
-    User2 = #{username => <<"dev:devid">>},
-    ok = emqx_access_control:authenticate(User1, <<"password">>),
-    {error, password_error} = emqx_access_control:authenticate(User1, <<"password00">>),
-    ok = emqx_access_control:authenticate(User2, <<"passwd2">>),
+    User1 = #{username => <<"id">>,
+              password => <<"password">>},
+    User2 = #{username => <<"dev:devid">>,
+              password => <<"passwd2">>},
+    {ok, _} = emqx_access_control:authenticate(User1),
+    {error, _} = emqx_access_control:authenticate(User1#{password => <<"password3">>}),
+    {ok, _} = emqx_access_control:authenticate(User2),
     %% clean data
     ok = emqx_auth_username:remove_user(<<"id">>),
     ok = emqx_auth_username:remove_user(<<"dev:devid">>).
