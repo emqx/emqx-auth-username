@@ -14,13 +14,13 @@
 
 -module(emqx_auth_username_app).
 
+-include("emqx_auth_username.hrl").
+
 -behaviour(application).
 -behaviour(supervisor).
 
 -export([start/2, stop/1]).
 -export([init/1]).
-
--define(APP, emqx_auth_username).
 
 start(_Type, _Args) ->
     emqx_ctl:register_command(users, {?APP, cli}, []),
