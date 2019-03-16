@@ -14,6 +14,8 @@
 
 -module(emqx_auth_username_api).
 
+-include("emqx_auth_username.hrl").
+
 -import(proplists, [get_value/2]).
 
 -rest_api(#{name   => list_username,
@@ -21,6 +23,12 @@
             path   => "/auth_username",
             func   => list,
             descr  => "List available username in the cluster"}).
+
+-rest_api(#{name   => lookup_username,
+            method => 'GET',
+            path   => "/auth_username/:bin:username",
+            func   => lookup,
+            descr  => "Lookup username in the cluster"}).
 
 -rest_api(#{name   => add_username,
             method => 'POST',
@@ -40,10 +48,13 @@
             func   => delete,
             descr  => "Delete username in the cluster"}).
 
--export([list/2, add/2, update/2, delete/2]).
+-export([list/2, lookup/2, add/2, update/2, delete/2]).
 
 list(_Bindings, _Params) ->
     return({ok, emqx_auth_username:all_users()}).
+
+lookup(#{username := Username}, _Params) ->
+    return({ok, format(emqx_auth_username:lookup_user(Username))}).
 
 add(_Bindings, Params) ->
     Username = get_value(<<"username">>, Params),
@@ -80,6 +91,10 @@ return() ->
     emqx_mgmt:return().
 return(R) ->
     emqx_mgmt:return(R).
+
+format([{?APP, Username, Password}]) ->
+    [{username, Username},
+     {password, emqx_auth_username:unwarp_salt(Password)}].
 
 validate([], []) ->
     ok;

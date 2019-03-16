@@ -16,13 +16,14 @@
 
 -compile(export_all).
 
+-import(proplists, [get_value/2]).
+
 -include_lib("emqx/include/emqx.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 
 -define(TAB, emqx_auth_username).
--record(?TAB, {username, password}).
 
 all() ->
     [{group, emqx_auth_username}].
@@ -100,6 +101,12 @@ emqx_auth_username_rest_api(_Config) ->
     ?assertEqual(return([Username]),
                  emqx_auth_username_api:list(#{}, [])),
 
+    dbg:tracer(), dbg:p(all, call), dbg:tpl(?MODULE, match_password, 2, x),
+
+    {ok, [{code, 0}, {data, Data}]} =
+        emqx_auth_username_api:lookup(rest_binding(Username), []),
+    ?assertEqual(true, match_password(get_value(username, Data),  Password)),
+
     ok = emqx_access_control:authenticate(User, Password),
 
     ?assertEqual(return(),
@@ -130,20 +137,13 @@ change_config(_Config) ->
 cli(_Config) ->
     [ mnesia:dirty_delete({emqx_auth_username, Username}) ||  Username <- mnesia:dirty_all_keys(emqx_auth_username)],
     emqx_auth_username:cli(["add", "username", "password"]),
-    [{?TAB, <<"username">>, <<Salt:4/binary, Hash/binary>>}] =
-        emqx_auth_username:lookup_user(<<"username">>),
-    HashType = application:get_env(emqx_auth_username, password_hash, sha256),
-    case Hash =:= emqx_passwd:hash(HashType, <<Salt/binary, <<"password">>/binary>>) of
-        true -> ok;
-        false -> ct:fail("password error")
-    end, 
+
+    ?assertEqual(true, match_password(<<"username">>, <<"password">>)),
+
     emqx_auth_username:cli(["update", "username", "newpassword"]),
-    [{?TAB, <<"username">>, <<Salt1:4/binary, Hash1/binary>>}] =
-        emqx_auth_username:lookup_user(<<"username">>),
-    case Hash1 =:= emqx_passwd:hash(HashType, <<Salt1/binary, <<"newpassword">>/binary>>) of
-        true -> ok;
-        false -> ct:fail("password error")
-    end,    
+
+    ?assertEqual(true, match_password(<<"username">>, <<"newpassword">>)),
+
     emqx_auth_username:cli(["del", "username"]),
     [] = emqx_auth_username:lookup_user(<<"username">>),
     emqx_auth_username:cli(["add", "user1", "pass1"]),
@@ -155,6 +155,13 @@ cli(_Config) ->
 %%------------------------------------------------------------------------------
 %% Helpers
 %%------------------------------------------------------------------------------
+
+match_password(Username, PlainPassword) ->
+    HashType = application:get_env(emqx_auth_username, password_hash, sha256),
+    [{?TAB, Username, <<Salt:4/binary, Hash/binary>>}] =
+        emqx_auth_username:lookup_user(Username),
+    Hash =:= emqx_passwd:hash(HashType, <<Salt/binary, PlainPassword/binary>>).
+
 rest_params(Passwd) ->
     [{<<"password">>, Passwd}].
 

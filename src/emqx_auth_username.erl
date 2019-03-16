@@ -23,7 +23,7 @@
 -export([is_enabled/0]).
 -export([add_user/2, update_password/2, remove_user/1, lookup_user/1, all_users/0]).
 %% emqx_auth callbacks
--export([init/1, check/3, description/0]).
+-export([init/1, check/3, unwarp_salt/1, description/0]).
 
 -define(TAB, ?MODULE).
 -record(?TAB, {username, password}).
@@ -148,6 +148,9 @@ check(#{username := Username}, Password, #state{hash_type = HashType}) ->
                 false -> {error, password_error}
             end
     end.
+
+unwarp_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+    HashPasswd.
 
 description() ->
     "Username password Authentication Module".
