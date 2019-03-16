@@ -33,7 +33,7 @@ start(_Type, _Args) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqx_access_control:unregister_mod(auth, ?APP),
+    emqx:unhook('client.authenticate', fun emqx_auth_username:check/2),
     emqx_auth_username_cfg:unregister(),
     emqx_ctl:unregister_command(users).
 
