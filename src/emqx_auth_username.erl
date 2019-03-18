@@ -31,7 +31,7 @@
 
 -export([is_enabled/0]).
 
--export([add_user/2, remove_user/1, lookup_user/1, lookup_users/0, all_users/0]).
+-export([add_user/2, remove_user/1, lookup_user/1, all_users/0]).
 
 %% emqx_auth callbacks
 -export([init/1, check/3, description/0]).
@@ -95,9 +95,6 @@ insert_user(User = #?AUTH_USERNAME_TAB{username = Username}) ->
 -spec(lookup_user(binary()) -> list()).
 lookup_user(Username) ->
     mnesia:dirty_read(?AUTH_USERNAME_TAB, Username).
-
-lookup_users() ->
-    ets:tab2list(?AUTH_USERNAME_TAB).
 
 %% @doc Remove user
 -spec(remove_user(binary()) -> ok | {error, any()}).
