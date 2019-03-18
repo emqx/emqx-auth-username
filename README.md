@@ -25,13 +25,10 @@ etc/emqx_auth_username.conf:
 auth.user.password_hash = sha256
 ```
 
-REST API
+[REST API](https://developer.emqx.io/docs/emq/v3/en/rest.html)
 ------------
 
-Besides, this plugin allows managing usernames by [REST API](https://developer.emqx.io/docs/emq/v3/en/rest.html) after started this plugin.
-
 List all usernames
-
 ```
 # Request
 GET api/v3/auth_username
