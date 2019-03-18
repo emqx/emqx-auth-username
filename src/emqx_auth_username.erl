@@ -18,6 +18,8 @@
 
 -behaviour(emqx_auth_mod).
 
+-include ("emqx_auth_username.hrl").
+
 -include_lib("emqx/include/emqx.hrl").
 
 -include_lib("emqx/include/emqx_cli.hrl").
@@ -35,8 +37,6 @@
 -export([init/1, check/3, description/0]).
 
 -define(AUTH_USERNAME_TAB, mqtt_auth_username).
-
--record(?AUTH_USERNAME_TAB, {username, password}).
 
 %%--------------------------------------------------------------------
 %% CLI

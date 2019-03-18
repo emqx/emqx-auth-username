@@ -1,0 +1,1 @@
+-record(mqtt_auth_username, {username, password}).
