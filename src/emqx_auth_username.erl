@@ -19,10 +19,18 @@
 %% CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
--export([add_user/2, update_password/2, remove_user/1, lookup_user/1, all_users/0]).
+-export([ add_user/2
+        , update_password/2
+        , remove_user/1
+        , lookup_user/1
+        , all_users/0
+        ]).
 
-%% emqx_auth callbacks
--export([init/1, check/2, unwarp_salt/1, description/0]).
+-export([ init/1
+        , check/2
+        , unwarp_salt/1
+        , description/0
+        ]).
 
 -define(TAB, ?MODULE).
 -record(?TAB, {username, password}).
@@ -120,10 +128,6 @@ ret({aborted, Error}) -> {error, Error}.
 %% @doc All usernames
 -spec(all_users() -> list()).
 all_users() -> mnesia:dirty_all_keys(?TAB).
-
-%%-----------------------------------------------------------------------------
-%% emqx_auth_mod callbacks
-%%-----------------------------------------------------------------------------
 
 init(Userlist) ->
     ok = ekka_mnesia:create_table(?TAB, [

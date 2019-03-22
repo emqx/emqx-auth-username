@@ -18,37 +18,47 @@
 
 -import(proplists, [get_value/2]).
 
--rest_api(#{name   => list_username,
-            method => 'GET',
-            path   => "/auth_username",
-            func   => list,
-            descr  => "List available username in the cluster"}).
+-rest_api(#{ name   => list_username
+           , method => 'GET'
+           , path   => "/auth_username"
+           , func   => list
+           , descr  => "List available username in the cluster"
+           }).
 
--rest_api(#{name   => lookup_username,
-            method => 'GET',
-            path   => "/auth_username/:bin:username",
-            func   => lookup,
-            descr  => "Lookup username in the cluster"}).
+-rest_api(#{ name   => lookup_username
+           , method => 'GET'
+           , path   => "/auth_username/:bin:username"
+           , func   => lookup
+           , descr  => "Lookup username in the cluster"
+           }).
 
--rest_api(#{name   => add_username,
-            method => 'POST',
-            path   => "/auth_username",
-            func   => add,
-            descr  => "Add username in the cluster"}).
+-rest_api(#{ name   => add_username
+           , method => 'POST'
+           , path   => "/auth_username"
+           , func   => add
+           , descr  => "Add username in the cluster"
+           }).
 
--rest_api(#{name   => update_username,
-            method => 'PUT',
-            path   => "/auth_username/:bin:username",
-            func   => update,
-            descr  => "Update username in the cluster"}).
+-rest_api(#{ name   => update_username
+           , method => 'PUT'
+           , path   => "/auth_username/:bin:username"
+           , func   => update
+           , descr  => "Update username in the cluster"
+           }).
 
--rest_api(#{name   => delete_username,
-            method => 'DELETE',
-            path   => "/auth_username/:bin:username",
-            func   => delete,
-            descr  => "Delete username in the cluster"}).
+-rest_api(#{ name   => delete_username
+           , method => 'DELETE'
+           , path   => "/auth_username/:bin:username"
+           , func   => delete
+           , descr  => "Delete username in the cluster"
+           }).
 
--export([list/2, lookup/2, add/2, update/2, delete/2]).
+-export([ list/2
+        , lookup/2
+        , add/2
+        , update/2
+        , delete/2
+        ]).
 
 list(_Bindings, _Params) ->
     return({ok, emqx_auth_username:all_users()}).
@@ -112,4 +122,3 @@ validation(password, V) when is_binary(V)
     true;
 validation(_, _) ->
     false.
-
