@@ -21,9 +21,9 @@
 
 -emqx_plugin(?MODULE).
 
--export([  start/2
-         , stop/1
-         ]).
+-export([ start/2
+        , stop/1
+        ]).
 -export([init/1]).
 
 start(_Type, _Args) ->
