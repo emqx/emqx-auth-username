@@ -26,7 +26,6 @@
         , all_users/0
         ]).
 
-%% emqx_auth callbacks
 -export([ init/1
         , check/2
         , unwarp_salt/1
@@ -129,10 +128,6 @@ ret({aborted, Error}) -> {error, Error}.
 %% @doc All usernames
 -spec(all_users() -> list()).
 all_users() -> mnesia:dirty_all_keys(?TAB).
-
-%%-----------------------------------------------------------------------------
-%% emqx_auth_mod callbacks
-%%-----------------------------------------------------------------------------
 
 init(Userlist) ->
     ok = ekka_mnesia:create_table(?TAB, [
