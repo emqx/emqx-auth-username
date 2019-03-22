@@ -19,10 +19,19 @@
 %% CLI callbacks
 -export([cli/1]).
 -export([is_enabled/0]).
--export([add_user/2, update_password/2, remove_user/1, lookup_user/1, all_users/0]).
+-export([ add_user/2
+        , update_password/2
+        , remove_user/1
+        , lookup_user/1
+        , all_users/0
+        ]).
 
 %% emqx_auth callbacks
--export([init/1, check/2, unwarp_salt/1, description/0]).
+-export([ init/1
+        , check/2
+        , unwarp_salt/1
+        , description/0
+        ]).
 
 -define(TAB, ?MODULE).
 -record(?TAB, {username, password}).
@@ -134,14 +143,14 @@ init(Userlist) ->
 
 check(Credentials = #{username := Username, password := Password}, _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {ok, Credentials#{result => clientid_or_password_undefined}};
+    {ok, Credentials#{auth_result => bad_username_or_password}};
 check(Credentials = #{username := Username, password := Password}, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
         [] -> ok;
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
-                true -> {stop, Credentials#{result => success}};
-                false -> {stop, Credentials#{result => password_error}}
+                true -> {stop, Credentials#{auth_result => success}};
+                false -> {stop, Credentials#{auth_result => password_error}}
             end
     end.
 
