@@ -48,7 +48,12 @@
             func   => delete,
             descr  => "Delete username in the cluster"}).
 
--export([list/2, lookup/2, add/2, update/2, delete/2]).
+-export([  list/2
+         , lookup/2
+         , add/2
+         , update/2
+         , delete/2
+         ]).
 
 list(_Bindings, _Params) ->
     return({ok, emqx_auth_username:all_users()}).
