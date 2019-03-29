@@ -18,6 +18,8 @@
 
 -import(proplists, [get_value/2]).
 
+-import(minirest,  [return/0, return/1]).
+
 -rest_api(#{ name   => list_username
            , method => 'GET'
            , path   => "/auth_username"
@@ -96,11 +98,6 @@ delete(#{username := Username}, _) ->
 %%------------------------------------------------------------------------------
 %% Interval Funcs
 %%------------------------------------------------------------------------------
-
-return() ->
-    emqx_mgmt:return().
-return(R) ->
-    emqx_mgmt:return(R).
 
 format([{?APP, Username, Password}]) ->
     [{username, Username},
