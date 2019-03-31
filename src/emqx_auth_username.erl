@@ -18,7 +18,9 @@
 
 %% CLI callbacks
 -export([cli/1]).
+
 -export([is_enabled/0]).
+
 -export([ add_user/2
         , update_password/2
         , remove_user/1
@@ -28,13 +30,16 @@
 
 -export([ init/1
         , check/2
-        , unwarp_salt/1
         , description/0
         ]).
 
+-export([unwrap_salt/1]).
+
 -define(TAB, ?MODULE).
--record(?TAB, {username, password}).
+
 -define(UNDEFINED(S), (S =:= undefined)).
+
+-record(?TAB, {username, password}).
 
 %%-----------------------------------------------------------------------------
 %% CLI
@@ -149,7 +154,7 @@ check(Credentials = #{username := Username, password := Password}, #{hash_type :
             end
     end.
 
-unwarp_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
     HashPasswd.
 
 description() ->
