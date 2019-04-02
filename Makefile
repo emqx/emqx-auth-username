@@ -4,10 +4,10 @@ PROJECT_DESCRIPTION = EMQ X Authentication with Username/Password
 CUR_BRANCH := $(shell git branch | grep -e "^*" | cut -d' ' -f 2)
 BRANCH := $(if $(filter $(CUR_BRANCH), master develop), $(CUR_BRANCH), develop)
 
-DEPS = emqx_management emqx_passwd clique
-dep_emqx_management = git-emqx https://github.com/emqx/emqx-management $(BRANCH)
-dep_emqx_passwd     = git-emqx https://github.com/emqx/emqx-passwd v1.0
-dep_clique          = git-emqx https://github.com/emqx/clique v0.3.11
+DEPS = emqx_passwd clique minirest
+dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v1.0
+dep_clique      = git-emqx https://github.com/emqx/clique v0.3.11
+dep_minirest    = git-emqx https://github.com/emqx/minirest v0.2.2
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git-emqx https://github.com/emqx/emqx $(BRANCH)
