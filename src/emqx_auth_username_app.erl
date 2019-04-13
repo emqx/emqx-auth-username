@@ -31,6 +31,7 @@ start(_Type, _Args) ->
     HashType = application:get_env(?APP, password_hash, sha256),
     Params = #{hash_type => HashType},
     emqx:hook('client.authenticate', fun emqx_auth_username:check/2, [Params]),
+    ok = emqx_auth_username:init(),
     emqx_auth_username_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
