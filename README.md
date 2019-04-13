@@ -16,9 +16,6 @@ Configuration
 etc/emqx_auth_username.conf:
 
 ```
-##auth.user.$N.username = admin
-##auth.user.$N.password = public
-
 ## Password hash.
 ##
 ## Value: plain | md5 | sha | sha256 
