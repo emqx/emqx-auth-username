@@ -30,56 +30,30 @@ all() ->
 
 groups() ->
     [{emqx_auth_username, [sequence],
-      [emqx_auth_username_api, emqx_auth_username_rest_api, change_config, cli]}].
+      [t_managing, t_rest_api, t_cli]}].
 
 init_per_suite(Config) ->
-    [start_apps(App, SchemaFile, ConfigFile) ||
-        {App, SchemaFile, ConfigFile}
-            <- [{emqx, deps_path(emqx, "priv/emqx.schema"),
-                       deps_path(emqx, "etc/emqx.conf")},
-                {emqx_auth_username, local_path("priv/emqx_auth_username.schema"),
-                                     local_path("etc/emqx_auth_username.conf")}]],
+    emqx_ct_helpers:start_apps([emqx_auth_username], fun set_special_configs/1),
     Config.
 
 end_per_suite(_Config) ->
-    application:stop(emqx_auth_username),
-    application:stop(emqx).
-
-deps_path(App, RelativePath) ->
-    %% Note: not lib_dir because etc dir is not sym-link-ed to _build dir
-    %% but priv dir is
-    Path0 = code:priv_dir(App),
-    Path = case file:read_link(Path0) of
-               {ok, Resolved} -> Resolved;
-               {error, _} -> Path0
-           end,
-    filename:join([Path, "..", RelativePath]).
-
-local_path(RelativePath) ->
-    deps_path(emqx_auth_username, RelativePath).
-
-start_apps(App, SchemaFile, ConfigFile) ->
-    read_schema_configs(App, SchemaFile, ConfigFile),
-    set_special_configs(App),
-    application:ensure_all_started(App).
-
-read_schema_configs(App, SchemaFile, ConfigFile) ->
-    ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
-    Schema = cuttlefish_schema:files([SchemaFile]),
-    Conf = conf_parse:file(ConfigFile),
-    NewConfig = cuttlefish_generator:map(Schema, Conf),
-    Vals = proplists:get_value(App, NewConfig, []),
-    [application:set_env(App, Par, Value) || {Par, Value} <- Vals].
+    emqx_ct_helpers:stop_apps([emqx_auth_username]).
 
 set_special_configs(emqx) ->
     application:set_env(emqx, allow_anonymous, false),
     application:set_env(emqx, enable_acl_cache, false),
+    LoadedPluginPath = filename:join(["test", "emqx_SUITE_data", "loaded_plugins"]),
     application:set_env(emqx, plugins_loaded_file,
-                        deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins"));
+                        emqx_ct_helpers:deps_path(emqx, LoadedPluginPath));
+
 set_special_configs(_App) ->
     ok.
 
-emqx_auth_username_api(_Config) ->
+%%------------------------------------------------------------------------------
+%% Testcases
+%%------------------------------------------------------------------------------
+
+t_managing(_Config) ->
     ok = emqx_auth_username:add_user(<<"test_username">>, <<"password">>),
     [{?TAB, <<"test_username">>, _HashedPass}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
@@ -89,7 +63,7 @@ emqx_auth_username_api(_Config) ->
     ok = emqx_auth_username:remove_user(<<"test_username">>),
     {error, _} = emqx_access_control:authenticate(User1).
 
-emqx_auth_username_rest_api(_Config) ->
+t_rest_api(_Config) ->
     Username = <<"username">>,
     Password = <<"password">>,
     Password1 = <<"password1">>,
@@ -119,23 +93,7 @@ emqx_auth_username_rest_api(_Config) ->
                  emqx_auth_username_api:delete(rest_binding(Username), [])),
     {error, _} = emqx_access_control:authenticate(User#{password => Password}).
 
-change_config(_Config) ->
-    application:stop(emqx_auth_username),
-    application:set_env(emqx_auth_username, userlist,
-                        [{"id", "password"}, {"dev:devid", "passwd2"}]),
-    application:start(emqx_auth_username),
-    User1 = #{username => <<"id">>,
-              password => <<"password">>},
-    User2 = #{username => <<"dev:devid">>,
-              password => <<"passwd2">>},
-    {ok, _} = emqx_access_control:authenticate(User1),
-    {error, _} = emqx_access_control:authenticate(User1#{password => <<"password3">>}),
-    {ok, _} = emqx_access_control:authenticate(User2),
-    %% clean data
-    ok = emqx_auth_username:remove_user(<<"id">>),
-    ok = emqx_auth_username:remove_user(<<"dev:devid">>).
-
-cli(_Config) ->
+t_cli(_Config) ->
     [ mnesia:dirty_delete({emqx_auth_username, Username}) ||  Username <- mnesia:dirty_all_keys(emqx_auth_username)],
     emqx_auth_username:cli(["add", "username", "password"]),
 
