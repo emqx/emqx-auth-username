@@ -40,7 +40,7 @@ end_per_suite(_Config) ->
     emqx_ct_helpers:stop_apps([emqx_auth_username]).
 
 set_special_configs(emqx) ->
-    application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, allow_anonymous, true),
     application:set_env(emqx, enable_acl_cache, false),
     LoadedPluginPath = filename:join(["test", "emqx_SUITE_data", "loaded_plugins"]),
     application:set_env(emqx, plugins_loaded_file,
@@ -59,9 +59,13 @@ t_managing(_Config) ->
         emqx_auth_username:lookup_user(<<"test_username">>),
     User1 = #{username => <<"test_username">>,
               password => <<"password">>},
-    {ok, _} = emqx_access_control:authenticate(User1),
+
+    {ok, #{auth_result := success,
+           anonymous := false}} = emqx_access_control:authenticate(User1),
+
     ok = emqx_auth_username:remove_user(<<"test_username">>),
-    {error, _} = emqx_access_control:authenticate(User1).
+    {ok, #{auth_result := success,
+           anonymous := true }} = emqx_access_control:authenticate(User1).
 
 t_rest_api(_Config) ->
     Username = <<"username">>,
@@ -91,7 +95,8 @@ t_rest_api(_Config) ->
 
     ?assertEqual(return(),
                  emqx_auth_username_api:delete(rest_binding(Username), [])),
-    {error, _} = emqx_access_control:authenticate(User#{password => Password}).
+    {ok, #{auth_result := success,
+           anonymous := true}} = emqx_access_control:authenticate(User#{password => Password}).
 
 t_cli(_Config) ->
     [ mnesia:dirty_delete({emqx_auth_username, Username}) ||  Username <- mnesia:dirty_all_keys(emqx_auth_username)],
