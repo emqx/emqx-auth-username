@@ -28,11 +28,10 @@
 
 start(_Type, _Args) ->
     emqx_ctl:register_command(users, {?APP, cli}, []),
-    Userlist = application:get_env(?APP, userlist, []),
     HashType = application:get_env(?APP, password_hash, sha256),
     Params = #{hash_type => HashType},
     emqx:hook('client.authenticate', fun emqx_auth_username:check/2, [Params]),
-    ok = emqx_auth_username:init(Userlist),
+    ok = emqx_auth_username:init(),
     emqx_auth_username_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 

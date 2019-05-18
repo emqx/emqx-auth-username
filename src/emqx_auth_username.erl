@@ -21,6 +21,7 @@
 
 -export([is_enabled/0]).
 
+%% APIs
 -export([ add_user/2
         , update_password/2
         , remove_user/1
@@ -28,16 +29,15 @@
         , all_users/0
         ]).
 
--export([ init/1
+-export([unwrap_salt/1]).
+
+%% Auth callbacks
+-export([ init/0
         , check/2
         , description/0
         ]).
 
--export([unwrap_salt/1]).
-
 -define(TAB, ?MODULE).
-
--define(UNDEFINED(S), (S =:= undefined)).
 
 -record(?TAB, {username, password}).
 
@@ -111,12 +111,6 @@ do_update_password(User = #?TAB{username = Username}) ->
         [] -> mnesia:abort(noexisted)
     end.
 
-add_default_user({Username, Password}) when is_atom(Username) ->
-    add_default_user({atom_to_list(Username), Password});
-
-add_default_user({Username, Password}) ->
-    add_user(iolist_to_binary(Username), iolist_to_binary(Password)).
-
 %% @doc Lookup user by username
 -spec(lookup_user(binary()) -> list()).
 lookup_user(Username) ->
@@ -134,28 +128,28 @@ ret({aborted, Error}) -> {error, Error}.
 -spec(all_users() -> list()).
 all_users() -> mnesia:dirty_all_keys(?TAB).
 
-init(Userlist) ->
+unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
+    HashPasswd.
+
+%%------------------------------------------------------------------------------
+%% Auth callbacks
+%%------------------------------------------------------------------------------
+
+init() ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
-    ok = ekka_mnesia:copy_table(?TAB, disc_copies),
-    ok = lists:foreach(fun add_default_user/1, Userlist).
+    ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
-check(Credentials = #{username := Username, password := Password}, _State)
-    when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {ok, Credentials#{auth_result => bad_username_or_password}};
 check(Credentials = #{username := Username, password := Password}, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
         [] -> ok;
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
-                true -> {stop, Credentials#{auth_result => success}};
-                false -> {stop, Credentials#{auth_result => password_error}}
+                true -> {stop, Credentials#{auth_result => success, anonymous => false}};
+                false -> {stop, Credentials#{auth_result => password_error, anonymous => false}}
             end
     end.
-
-unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
-    HashPasswd.
 
 description() ->
     "Username password Authentication Module".
@@ -175,3 +169,4 @@ hash(Password, SaltBin, HashType) ->
 salt() ->
     rand:seed(exsplus, erlang:timestamp()),
     Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
+
