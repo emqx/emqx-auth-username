@@ -22,3 +22,5 @@ rebar.lock
 rebar3.crashdump
 erlang.mk
 .*.swp
+.rebar3/
+etc/emqx_auth_username.conf.rendered

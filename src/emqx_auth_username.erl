@@ -39,8 +39,6 @@
 
 -define(TAB, ?MODULE).
 
--define(UNDEFINED(S), (S =:= undefined)).
-
 -record(?TAB, {username, password}).
 
 %%-----------------------------------------------------------------------------
@@ -143,16 +141,13 @@ init() ->
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
-check(Credentials = #{username := Username, password := Password}, _State)
-    when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {ok, Credentials#{auth_result => bad_username_or_password}};
 check(Credentials = #{username := Username, password := Password}, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
         [] -> ok;
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
-                true -> {stop, Credentials#{auth_result => success}};
-                false -> {stop, Credentials#{auth_result => password_error}}
+                true -> {stop, Credentials#{auth_result => success, anonymous => false}};
+                false -> {stop, Credentials#{auth_result => password_error, anonymous => false}}
             end
     end.
 
@@ -174,3 +169,4 @@ hash(Password, SaltBin, HashType) ->
 salt() ->
     rand:seed(exsplus, erlang:timestamp()),
     Salt = rand:uniform(16#ffffffff), <<Salt:32>>.
+
