@@ -143,7 +143,7 @@ init() ->
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.username.succeed', 'auth.username.fail', 'auth.username.ignore']].
+    [emqx_metrics:new(MetricName) || MetricName <- ['auth.username.success', 'auth.username.failure', 'auth.username.ignore']].
 
 check(Credentials = #{username := Username, password := Password}, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
@@ -151,10 +151,10 @@ check(Credentials = #{username := Username, password := Password}, #{hash_type :
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
                 true -> 
-                    emqx_metrics:inc('auth.username.succeed'),
+                    emqx_metrics:inc('auth.username.success'),
                     {stop, Credentials#{auth_result => success, anonymous => false}};
                 false ->
-                    emqx_metrics:inc('auth.username.fail'),
+                    emqx_metrics:inc('auth.username.failure'),
                     {stop, Credentials#{auth_result => password_error, anonymous => false}}
             end
     end.
