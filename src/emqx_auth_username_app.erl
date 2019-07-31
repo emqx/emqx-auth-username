@@ -31,13 +31,13 @@ start(_Type, _Args) ->
     emqx_auth_username:register_metrics(),
     HashType = application:get_env(?APP, password_hash, sha256),
     Params = #{hash_type => HashType},
-    emqx:hook('client.authenticate', fun emqx_auth_username:check/2, [Params]),
+    emqx:hook('client.authenticate', fun emqx_auth_username:check/3, [Params]),
     ok = emqx_auth_username:init(),
     emqx_auth_username_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    emqx:unhook('client.authenticate', fun emqx_auth_username:check/2),
+    emqx:unhook('client.authenticate', fun emqx_auth_username:check/3),
     emqx_auth_username_cfg:unregister(),
     emqx_ctl:unregister_command(users).
 
