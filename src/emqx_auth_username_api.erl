@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_auth_username_api).
 
@@ -20,39 +22,39 @@
 
 -import(minirest,  [return/0, return/1]).
 
--rest_api(#{ name   => list_username
-           , method => 'GET'
-           , path   => "/auth_username"
-           , func   => list
-           , descr  => "List available username in the cluster"
+-rest_api(#{name   => list_username,
+            method => 'GET',
+            path   => "/auth_username",
+            func   => list,
+            descr  => "List available username in the cluster"
            }).
 
--rest_api(#{ name   => lookup_username
-           , method => 'GET'
-           , path   => "/auth_username/:bin:username"
-           , func   => lookup
-           , descr  => "Lookup username in the cluster"
+-rest_api(#{name   => lookup_username,
+            method => 'GET',
+            path   => "/auth_username/:bin:username",
+            func   => lookup,
+            descr  => "Lookup username in the cluster"
            }).
 
--rest_api(#{ name   => add_username
-           , method => 'POST'
-           , path   => "/auth_username"
-           , func   => add
-           , descr  => "Add username in the cluster"
+-rest_api(#{name   => add_username,
+            method => 'POST',
+            path   => "/auth_username",
+            func   => add,
+            descr  => "Add username in the cluster"
            }).
 
--rest_api(#{ name   => update_username
-           , method => 'PUT'
-           , path   => "/auth_username/:bin:username"
-           , func   => update
-           , descr  => "Update username in the cluster"
+-rest_api(#{name   => update_username,
+            method => 'PUT',
+            path   => "/auth_username/:bin:username",
+            func   => update,
+            descr  => "Update username in the cluster"
            }).
 
--rest_api(#{ name   => delete_username
-           , method => 'DELETE'
-           , path   => "/auth_username/:bin:username"
-           , func   => delete
-           , descr  => "Delete username in the cluster"
+-rest_api(#{name   => delete_username,
+            method => 'DELETE',
+            path   => "/auth_username/:bin:username",
+            func   => delete,
+            descr  => "Delete username in the cluster"
            }).
 
 -export([ list/2
