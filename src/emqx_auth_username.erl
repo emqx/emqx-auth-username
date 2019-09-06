@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_auth_username).
 
@@ -40,50 +42,56 @@
 
 -define(TAB, ?MODULE).
 
+-define(AUTH_METRICS,
+        ['auth.username.success',
+         'auth.username.failure',
+         'auth.username.ignore'
+        ]).
+
 -record(?TAB, {username, password}).
 
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% CLI
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 cli(["list"]) ->
     if_enabled(fun() ->
         Usernames = mnesia:dirty_all_keys(?TAB),
-        [emqx_cli:print("~s~n", [Username]) || Username <- Usernames]
+        [emqx_mgmt:print("~s~n", [Username]) || Username <- Usernames]
     end);
 
 cli(["add", Username, Password]) ->
     if_enabled(fun() ->
         Ok = add_user(iolist_to_binary(Username), iolist_to_binary(Password)),
-        emqx_cli:print("~p~n", [Ok])
+        emqx_mgmt:print("~p~n", [Ok])
     end);
 
 cli(["update", Username, NewPassword]) ->
     if_enabled(fun() ->
         Ok = update_password(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
-        emqx_cli:print("~p~n", [Ok])
+        emqx_mgmt:print("~p~n", [Ok])
     end);
 
 cli(["del", Username]) ->
     if_enabled(fun() ->
-        emqx_cli:print("~p~n", [remove_user(iolist_to_binary(Username))])
+        emqx_mgmt:print("~p~n", [remove_user(iolist_to_binary(Username))])
     end);
 
 cli(_) ->
-    emqx_cli:usage([{"users list", "List users"},
-                    {"users add <Username> <Password>", "Add User"},
-                    {"users update <Username> <NewPassword>", "Update User"},
-                    {"users del <Username>", "Delete User"}]).
+    emqx_mgmt:usage([{"users list", "List users"},
+                     {"users add <Username> <Password>", "Add User"},
+                     {"users update <Username> <NewPassword>", "Update User"},
+                     {"users del <Username>", "Delete User"}]).
 
 if_enabled(Fun) ->
     case is_enabled() of true -> Fun(); false -> hint() end.
 
 hint() ->
-    emqx_cli:print("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
+    emqx_mgmt:print("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
 
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% API
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 is_enabled() ->
     lists:member(?TAB, mnesia:system_info(tables)).
@@ -132,9 +140,9 @@ all_users() -> mnesia:dirty_all_keys(?TAB).
 unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
     HashPasswd.
 
-%%------------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% Auth callbacks
-%%------------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 init() ->
     ok = ekka_mnesia:create_table(?TAB, [
@@ -143,7 +151,7 @@ init() ->
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.username.success', 'auth.username.failure', 'auth.username.ignore']].
+    lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
 
 check(#{username := Username, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
@@ -162,9 +170,9 @@ check(#{username := Username, password := Password}, AuthResult, #{hash_type := 
 description() ->
     "Username password Authentication Module".
 
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 %% Internal functions
-%%-----------------------------------------------------------------------------
+%%--------------------------------------------------------------------
 
 encrypted_data(Password) ->
     HashType = application:get_env(emqx_auth_username, password_hash, sha256),
