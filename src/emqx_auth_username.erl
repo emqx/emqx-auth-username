@@ -57,37 +57,37 @@
 cli(["list"]) ->
     if_enabled(fun() ->
         Usernames = mnesia:dirty_all_keys(?TAB),
-        [emqx_mgmt:print("~s~n", [Username]) || Username <- Usernames]
+        [emqx_ctl:print("~s~n", [Username]) || Username <- Usernames]
     end);
 
 cli(["add", Username, Password]) ->
     if_enabled(fun() ->
         Ok = add_user(iolist_to_binary(Username), iolist_to_binary(Password)),
-        emqx_mgmt:print("~p~n", [Ok])
+        emqx_ctl:print("~p~n", [Ok])
     end);
 
 cli(["update", Username, NewPassword]) ->
     if_enabled(fun() ->
         Ok = update_password(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
-        emqx_mgmt:print("~p~n", [Ok])
+        emqx_ctl:print("~p~n", [Ok])
     end);
 
 cli(["del", Username]) ->
     if_enabled(fun() ->
-        emqx_mgmt:print("~p~n", [remove_user(iolist_to_binary(Username))])
+        emqx_ctl:print("~p~n", [remove_user(iolist_to_binary(Username))])
     end);
 
 cli(_) ->
-    emqx_mgmt:usage([{"users list", "List users"},
-                     {"users add <Username> <Password>", "Add User"},
-                     {"users update <Username> <NewPassword>", "Update User"},
-                     {"users del <Username>", "Delete User"}]).
+    emqx_ctl:usage([{"users list", "List users"},
+                    {"users add <Username> <Password>", "Add User"},
+                    {"users update <Username> <NewPassword>", "Update User"},
+                    {"users del <Username>", "Delete User"}]).
 
 if_enabled(Fun) ->
     case is_enabled() of true -> Fun(); false -> hint() end.
 
 hint() ->
-    emqx_mgmt:print("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
+    emqx_ctl:print("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
 
 %%--------------------------------------------------------------------
 %% API
