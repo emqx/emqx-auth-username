@@ -150,19 +150,20 @@ init() ->
             {attributes, record_info(fields, ?TAB)}]),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
+-spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
 
 check(#{username := Username, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
-        [] -> emqx_metrics:inc('auth.username.ignore'), ok;
+        [] -> emqx_metrics:inc('auth.username.ignore');
         [#?TAB{password = <<Salt:4/binary, Hash/binary>>}] ->
             case Hash =:= hash(Password, Salt, HashType) of
                 true ->
-                    emqx_metrics:inc('auth.username.success'),
+                    ok = emqx_metrics:inc('auth.username.success'),
                     {stop, AuthResult#{auth_result => success, anonymous => false}};
                 false ->
-                    emqx_metrics:inc('auth.username.failure'),
+                    ok = emqx_metrics:inc('auth.username.failure'),
                     {stop, AuthResult#{auth_result => password_error, anonymous => false}}
             end
     end.
