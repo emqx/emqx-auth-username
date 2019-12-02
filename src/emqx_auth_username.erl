@@ -32,7 +32,7 @@
 -export([unwrap_salt/1]).
 
 %% Auth callbacks
--export([ init/0
+-export([ init/1
         , register_metrics/0
         , check/2
         , description/0
@@ -88,6 +88,7 @@ hint() ->
 is_enabled() ->
     lists:member(?TAB, mnesia:system_info(tables)).
 
+
 %% @doc Add User
 -spec(add_user(binary(), binary()) -> ok | {error, any()}).
 add_user(Username, Password) ->
@@ -136,12 +137,18 @@ unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
 %% Auth callbacks
 %%------------------------------------------------------------------------------
 
-init() ->
+init(DefaultUsers) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
             {attributes, record_info(fields, ?TAB)}]),
+    ok = lists:foreach(fun add_default_user/1, DefaultUsers),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
+%% @private
+add_default_user({Username, Password}) ->
+    add_user(iolist_to_binary(Username), iolist_to_binary(Password)).
+
+-spec(register_metrics() -> ok).
 register_metrics() ->
     [emqx_metrics:new(MetricName) || MetricName <- ['auth.username.success', 'auth.username.failure', 'auth.username.ignore']].
 
