@@ -57,7 +57,8 @@ t_managing(_Config) ->
     [{?TAB, <<"test_username">>, _HashedPass}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
     User1 = #{username => <<"test_username">>,
-              password => <<"password">>},
+              password => <<"password">>,
+              zone     => external},
 
     {ok, #{auth_result := success,
            anonymous := false}} = emqx_access_control:authenticate(User1),
@@ -72,7 +73,7 @@ t_rest_api(_Config) ->
     Username = <<"username">>,
     Password = <<"password">>,
     Password1 = <<"password1">>,
-    User = #{username => Username},
+    User = #{username => Username, zone => external},
 
     ?assertEqual(return(),
                  emqx_auth_username_api:add(#{}, rest_params(Username, Password))),
@@ -122,7 +123,7 @@ t_conf_not_override_existed(_) ->
     Username = <<"username">>,
     Password = <<"password">>,
     NPassword = <<"password1">>,
-    User = #{username => Username},
+    User = #{username => Username, zone => external},
 
     application:stop(emqx_auth_username),
     application:set_env(emqx_auth_username, userlist, [{Username, Password}]),
