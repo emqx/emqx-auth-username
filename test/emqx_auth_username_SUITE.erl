@@ -14,6 +14,7 @@
 
 -module(emqx_auth_username_SUITE).
 
+-compile(nowarn_export_all).
 -compile(export_all).
 
 -import(proplists, [get_value/2]).
@@ -26,11 +27,7 @@
 -define(TAB, emqx_auth_username).
 
 all() ->
-    [{group, emqx_auth_username}].
-
-groups() ->
-    [{emqx_auth_username, [sequence],
-      [t_managing, t_rest_api, t_cli]}].
+    emqx_ct:all(?MODULE).
 
 init_per_suite(Config) ->
     emqx_ct_helpers:start_apps([emqx_auth_username], fun set_special_configs/1),
@@ -54,11 +51,14 @@ set_special_configs(_App) ->
 %%------------------------------------------------------------------------------
 
 t_managing(_Config) ->
+    clean_all_users(),
+
     ok = emqx_auth_username:add_user(<<"test_username">>, <<"password">>),
     [{?TAB, <<"test_username">>, _HashedPass}] =
         emqx_auth_username:lookup_user(<<"test_username">>),
     User1 = #{username => <<"test_username">>,
-              password => <<"password">>},
+              password => <<"password">>,
+              zone     => external},
 
     {ok, #{auth_result := success,
            anonymous := false}} = emqx_access_control:authenticate(User1),
@@ -68,10 +68,12 @@ t_managing(_Config) ->
            anonymous := true }} = emqx_access_control:authenticate(User1).
 
 t_rest_api(_Config) ->
+    clean_all_users(),
+
     Username = <<"username">>,
     Password = <<"password">>,
     Password1 = <<"password1">>,
-    User = #{username => Username},
+    User = #{username => Username, zone => external},
 
     ?assertEqual(return(),
                  emqx_auth_username_api:add(#{}, rest_params(Username, Password))),
@@ -99,13 +101,12 @@ t_rest_api(_Config) ->
            anonymous := true}} = emqx_access_control:authenticate(User#{password => Password}).
 
 t_cli(_Config) ->
-    [ mnesia:dirty_delete({emqx_auth_username, Username}) ||  Username <- mnesia:dirty_all_keys(emqx_auth_username)],
-    emqx_auth_username:cli(["add", "username", "password"]),
+    clean_all_users(),
 
+    emqx_auth_username:cli(["add", "username", "password"]),
     ?assertEqual(true, match_password(<<"username">>, <<"password">>)),
 
     emqx_auth_username:cli(["update", "username", "newpassword"]),
-
     ?assertEqual(true, match_password(<<"username">>, <<"newpassword">>)),
 
     emqx_auth_username:cli(["del", "username"]),
@@ -116,9 +117,41 @@ t_cli(_Config) ->
     2 = length(UserList),
     emqx_auth_username:cli(usage).
 
+t_conf_not_override_existed(_) ->
+    clean_all_users(),
+
+    Username = <<"username">>,
+    Password = <<"password">>,
+    NPassword = <<"password1">>,
+    User = #{username => Username, zone => external},
+
+    application:stop(emqx_auth_username),
+    application:set_env(emqx_auth_username, userlist, [{Username, Password}]),
+    application:ensure_all_started(emqx_auth_username),
+
+    {ok, _} = emqx_access_control:authenticate(User#{password => Password}),
+    emqx_auth_username:cli(["update", Username, NPassword]),
+
+    {error, _} = emqx_access_control:authenticate(User#{password => Password}),
+    {ok, _} = emqx_access_control:authenticate(User#{password => NPassword}),
+
+    application:stop(emqx_auth_username),
+    application:ensure_all_started(emqx_auth_username),
+    {ok, _} = emqx_access_control:authenticate(User#{password => NPassword}),
+
+    ?assertEqual(return(),
+                 emqx_auth_username_api:update(rest_binding(Username), rest_params(Password))),
+    application:stop(emqx_auth_username),
+    application:ensure_all_started(emqx_auth_username),
+    {ok, _} = emqx_access_control:authenticate(User#{password => Password}).
+
 %%------------------------------------------------------------------------------
 %% Helpers
 %%------------------------------------------------------------------------------
+
+clean_all_users() ->
+    [ mnesia:dirty_delete({emqx_auth_username, Username})
+      || Username <- mnesia:dirty_all_keys(emqx_auth_username)].
 
 match_password(Username, PlainPassword) ->
     HashType = application:get_env(emqx_auth_username, password_hash, sha256),
