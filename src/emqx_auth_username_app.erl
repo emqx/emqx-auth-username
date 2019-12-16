@@ -36,12 +36,10 @@ start(_Type, _Args) ->
     emqx:hook('client.authenticate', fun emqx_auth_username:check/3, [Params]),
     DefaultUsers = application:get_env(?APP, userlist, []),
     ok = emqx_auth_username:init(DefaultUsers),
-    emqx_auth_username_cfg:register(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
     emqx:unhook('client.authenticate', fun emqx_auth_username:check/3),
-    emqx_auth_username_cfg:unregister(),
     emqx_ctl:unregister_command(users).
 
 %%--------------------------------------------------------------------
