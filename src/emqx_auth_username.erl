@@ -16,6 +16,7 @@
 
 -module(emqx_auth_username).
 
+-include("emqx_auth_username.hrl").
 -include_lib("emqx/include/emqx.hrl").
 
 %% CLI callbacks
