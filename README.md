@@ -28,7 +28,7 @@ auth.user.password_hash = sha256
 List all usernames
 ```
 # Request
-GET api/v3/auth_username
+GET api/v4/auth_username
 
 # Response
 {
@@ -40,7 +40,7 @@ GET api/v3/auth_username
 Add a username:
 ```
 # Request
-POST api/v3/auth_username
+POST api/v4/auth_username
 {
     "username": "some_name",
     "password": "password"
@@ -55,7 +55,7 @@ POST api/v3/auth_username
 Update password for a username:
 ```
 # Request
-PUT api/v3/auth_username/$NAME
+PUT api/v4/auth_username/$NAME
 {
     "password": "password"
 }
@@ -69,7 +69,7 @@ PUT api/v3/auth_username/$NAME
 Lookup a username info:
 ```
 # Request
-GET api/v3/auth_username/$NAME
+GET api/v4/auth_username/$NAME
 
 # Response
 {
@@ -84,7 +84,7 @@ GET api/v3/auth_username/$NAME
 Delete a username:
 ```
 # Request
-DELETE api/v3/auth_username/$NAME
+DELETE api/v4/auth_username/$NAME
 
 # Response
 {
