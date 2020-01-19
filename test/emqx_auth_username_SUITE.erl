@@ -17,8 +17,6 @@
 -compile(nowarn_export_all).
 -compile(export_all).
 
--import(proplists, [get_value/2]).
-
 -include_lib("emqx/include/emqx.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
@@ -82,9 +80,9 @@ t_rest_api(_Config) ->
     ?assertEqual(return([Username]),
                  emqx_auth_username_api:list(#{}, [])),
 
-    {ok, [{code, 0}, {data, Data}]} =
+    {ok, #{code := 0, data := Data}} =
         emqx_auth_username_api:lookup(rest_binding(Username), []),
-    ?assertEqual(true, match_password(get_value(username, Data),  Password)),
+    ?assertEqual(true, match_password(maps:get(username, Data),  Password)),
 
     {ok, _} = emqx_access_control:authenticate(User#{password => Password}),
 
@@ -170,9 +168,9 @@ rest_binding(Username) ->
     #{username => Username}.
 
 return() ->
-    {ok, [{code, 0}]}.
+    {ok, #{code => 0}}.
 return({error, Err}) ->
-    {ok, [{message, Err}]};
+    {ok, #{message => Err}};
 return(Data) ->
-    {ok, [{code, 0}, {data, Data}]}.
+    {ok, #{code => 0, data => Data}}.
 
