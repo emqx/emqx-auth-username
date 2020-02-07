@@ -102,8 +102,8 @@ delete(#{username := Username}, _) ->
 %%------------------------------------------------------------------------------
 
 format([{?APP, Username, Password}]) ->
-    [{username, Username},
-     {password, emqx_auth_username:unwrap_salt(Password)}].
+    #{username => Username,
+      password => emqx_auth_username:unwrap_salt(Password)}.
 
 validate([], []) ->
     ok;
