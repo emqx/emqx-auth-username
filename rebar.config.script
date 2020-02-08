@@ -12,17 +12,21 @@ CONFIG1 = case os:getenv("TRAVIS") of
 
 CUR_BRANCH = os:cmd("git branch | grep -e '^*' | cut -d' ' -f 2") -- "\n",
 
+io:format("!!!CUR_BRANCN: ~p~n", [CUR_BRANCH]),
+
 MATCH_BRANCH = fun (BranchName) when BranchName =:= "master";
                                      BranchName =:= "develop" ->
                        BranchName;
                    (BranchName) ->
                        case string:prefix(BranchName, "release") of
-                           nomatch -> "develop";
+                           nomatch -> "develop-5";
                            _Match -> BranchName
                        end
                end,
 
 BRANCH = MATCH_BRANCH(CUR_BRANCH),
+
+io:format("!!!~p~n", [BRANCH]),
 
 DEPS = case lists:keyfind(deps, 1, CONFIG1) of
            {_, Deps} -> Deps;
