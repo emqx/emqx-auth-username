@@ -57,7 +57,7 @@ cli(["add", Username, Password]) ->
 
 cli(["update", Username, NewPassword]) ->
     Ok = update_password(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
-    emqx_ctl:print("~p~n", [Ok])
+    emqx_ctl:print("~p~n", [Ok]);
 
 cli(["del", Username]) ->
     emqx_ctl:print("~p~n", [remove_user(iolist_to_binary(Username))]);
