@@ -22,8 +22,6 @@
 %% CLI callbacks
 -export([cli/1]).
 
--export([is_enabled/0]).
-
 %% APIs
 -export([ add_user/2
         , update_password/2
@@ -50,27 +48,19 @@
 %%--------------------------------------------------------------------
 
 cli(["list"]) ->
-    if_enabled(fun() ->
-        Usernames = mnesia:dirty_all_keys(?TAB),
-        [emqx_ctl:print("~s~n", [Username]) || Username <- Usernames]
-    end);
+    Usernames = mnesia:dirty_all_keys(?TAB),
+    [emqx_ctl:print("~s~n", [Username]) || Username <- Usernames];
 
 cli(["add", Username, Password]) ->
-    if_enabled(fun() ->
-        Ok = add_user(iolist_to_binary(Username), iolist_to_binary(Password)),
-        emqx_ctl:print("~p~n", [Ok])
-    end);
+    Ok = add_user(iolist_to_binary(Username), iolist_to_binary(Password)),
+    emqx_ctl:print("~p~n", [Ok]);
 
 cli(["update", Username, NewPassword]) ->
-    if_enabled(fun() ->
-        Ok = update_password(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
-        emqx_ctl:print("~p~n", [Ok])
-    end);
+    Ok = update_password(iolist_to_binary(Username), iolist_to_binary(NewPassword)),
+    emqx_ctl:print("~p~n", [Ok]);
 
 cli(["del", Username]) ->
-    if_enabled(fun() ->
-        emqx_ctl:print("~p~n", [remove_user(iolist_to_binary(Username))])
-    end);
+    emqx_ctl:print("~p~n", [remove_user(iolist_to_binary(Username))]);
 
 cli(_) ->
     emqx_ctl:usage([{"users list", "List users"},
@@ -78,19 +68,9 @@ cli(_) ->
                     {"users update <Username> <NewPassword>", "Update User"},
                     {"users del <Username>", "Delete User"}]).
 
-if_enabled(Fun) ->
-    case is_enabled() of true -> Fun(); false -> hint() end.
-
-hint() ->
-    emqx_ctl:print("Please './bin/emqx_ctl plugins load emqx_auth_username' first.~n").
-
 %%--------------------------------------------------------------------
 %% API
 %%--------------------------------------------------------------------
-
-is_enabled() ->
-    lists:member(?TAB, mnesia:system_info(tables)).
-
 
 %% @doc Add User
 -spec(add_user(binary(), binary()) -> ok | {error, any()}).
@@ -143,7 +123,8 @@ unwrap_salt(<<_Salt:4/binary, HashPasswd/binary>>) ->
 init(DefaultUsers) ->
     ok = ekka_mnesia:create_table(?TAB, [
             {disc_copies, [node()]},
-            {attributes, record_info(fields, ?TAB)}]),
+            {attributes, record_info(fields, ?TAB)},
+            {storage_properties, [{ets, [{read_concurrency, true}]}]}]),
     ok = lists:foreach(fun add_default_user/1, DefaultUsers),
     ok = ekka_mnesia:copy_table(?TAB, disc_copies).
 
