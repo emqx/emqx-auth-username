@@ -146,7 +146,7 @@ check(#{username := Username, password := Password}, AuthResult, #{hash_type := 
                     {stop, AuthResult#{auth_result => success, anonymous => false}};
                 false ->
                     ok = emqx_metrics:inc(?AUTH_METRICS(failure)),
-                    {stop, AuthResult#{auth_result => password_error, anonymous => false}}
+                    {stop, AuthResult#{auth_result => not_authorized, anonymous => false}}
             end
     end.
 
