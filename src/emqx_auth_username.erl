@@ -134,7 +134,7 @@ add_default_user({Username, Password}) ->
 
 -spec(register_metrics() -> ok).
 register_metrics() ->
-    lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
+    lists:foreach(fun emqx_metrics:ensure/1, ?AUTH_METRICS).
 
 check(#{username := Username, password := Password}, AuthResult, #{hash_type := HashType}) ->
     case mnesia:dirty_read(?TAB, Username) of
