@@ -1,7 +1,7 @@
 emqx_auth_username
 ==================
 
-EMQ X Authentication with Username and Password
+EMQX Authentication with Username and Password
 
 Build
 -----
@@ -107,5 +107,4 @@ Apache License Version 2.0
 Author
 ------
 
-EMQ X Team.
-
+EMQX Team.
